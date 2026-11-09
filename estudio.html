@@ -5062,7 +5062,7 @@ shell.innerHTML=`
   <p class="st-note">Prende la grabadora de pantalla antes de tocar Tomar. Al terminar, toca la pantalla para volver.</p>
 </div>
 <div id="st-tap" hidden></div>
-<div id="st-progress" data-no-i18n hidden><b id="st-prog-t"></b><span id="st-prog-s"></span><button class="st-second" id="st-prog-x">Cancelar</button></div>`;
+<div id="st-progress" data-no-i18n hidden><b id="st-prog-t"></b><span id="st-prog-s"></span><button class="st-second" id="st-prog-x">Saltar y usar el registro</button></div>`;
 while(shell.firstChild)document.body.appendChild(shell.firstChild);
 
 const VIEWS=['home','rec','done','mon'];
@@ -5355,9 +5355,23 @@ function installCanvas(W,H){
   buildSphere=function(color,R){const sp=_bs(color,Math.round(R*f));return {cv:sp.cv,R:sp.R/f,ext:sp.ext/f};};
 }
 
+function redetFrames(off){
+  const lf=M.log.frames,ok=k=>k&&k.score>=0.25;
+  let j=0,last=null;
+  return M.redet.map(f=>{
+    const t=f.t-off;let K=f.K;
+    if(ok(K[KP.LS])&&ok(K[KP.RS]))last=K;
+    else{
+      while(j+1<lf.length&&Math.abs(lf[j+1].t-t)<=Math.abs(lf[j].t-t))j++;
+      const src=lf[j]&&lf[j].K,fb=(src&&ok(src[KP.LS])&&ok(src[KP.RS]))?src:last;
+      if(fb){K=K.slice();K[KP.LS]=fb[KP.LS];K[KP.RS]=fb[KP.RS];}
+    }
+    return {t,K};
+  });
+}
 function buildEvents(){
   const log=M.log,ev=[],off=M.offset;
-  const frames=(M.kpSource==='redet'&&M.redet)?M.redet.map(f=>({t:f.t-off,K:f.K})):log.frames;
+  const frames=(M.kpSource==='redet'&&M.redet)?redetFrames(off):log.frames;
   for(const f of frames)ev.push({t:f.t,o:0,type:'f',K:f.K});
   ev.push({t:log.goT,o:1,type:'go'});
   const endMs=vid().duration*1000+Math.abs(off)+1000;
@@ -5433,6 +5447,16 @@ function paintSource(){
   b.textContent=M.kpSource==='redet'?'Usando detección nueva':'Usando registro';
 }
 
+function paintWarn(){
+  const v=vid(),log=M.log,msgs=[];
+  if(M.redetErr)msgs.push('No se pudo detectar el cuerpo en este video; se usa el registro.');
+  const vAR=v.videoWidth/v.videoHeight,lAR=log.video.w/log.video.h;
+  if(M.kpSource!=='redet'&&Math.abs(vAR-lAR)/lAR>0.02)msgs.push('La proporción del video cambió: usa Volver a detectar.');
+  if(Math.abs(v.duration*1000-log.video.ms)>400)msgs.push('El video dura '+fmtS(v.duration)+' y la toma '+fmtS(log.video.ms/1000)+'. Comprueba que sean la misma.');
+  const w=realGet('st-warn');w.textContent=msgs.join(' ');w.hidden=!msgs.length;
+  fitStage();
+}
+
 async function startMontar(file,log){
   const v=vid();
   v.autoplay=false;v.removeAttribute('autoplay');v.srcObject=null;v.muted=true;v.playsInline=true;v.preload='auto';v.loop=false;
@@ -5473,17 +5497,13 @@ async function startMontar(file,log){
   M.ready=true;
   buildEvents();resetReplay();
   const panel=realGet('st-panel');panel.hidden=false;
-  const msgs=[];
-  const vAR=v.videoWidth/v.videoHeight,lAR=log.video.w/log.video.h;
-  if(Math.abs(vAR-lAR)/lAR>0.02)msgs.push('La proporción del video cambió: usa Volver a detectar.');
-  if(Math.abs(v.duration*1000-log.video.ms)>400)msgs.push('El video dura '+fmtS(v.duration)+' y la toma '+fmtS(log.video.ms/1000)+'. Comprueba que sean la misma.');
-  const w=realGet('st-warn');w.textContent=msgs.join(' ');w.hidden=!msgs.length;
   realGet('st-clap').disabled=!log.clap;
-  fitStage();paintOffset();paintCut();paintSource();
+  paintWarn();fitStage();paintOffset();paintCut();paintSource();
   await seek(M.cutStart);
   renderAt(v.currentTime);paintTime(v.currentTime);
   v.requestVideoFrameCallback(onFrame);
   window.__estudio.ready=true;
+  if(!window.__estudioNoAuto)await redetect();
 }
 
 async function tomar(){
@@ -5507,12 +5527,13 @@ async function redetect(){
   const v=vid();
   v.pause();M.busy=true;M.cancel=false;
   const box=realGet('st-progress');box.hidden=false;
-  realGet('st-prog-t').textContent='Volviendo a detectar';
+  realGet('st-prog-t').textContent='Detectando el cuerpo del clon';
   realGet('st-prog-s').textContent='Cargando el modelo…';
   const here=v.currentTime;
   try{
     if(!detector)await M.loadModel();
     if(!detector)throw new Error('modelo');
+    setTrkBadge(2,'Posición',true);
     const n=Math.floor(v.duration/FRAME_S),out=[];
     for(let i=0;i<n&&!M.cancel;i++){
       const t=i*FRAME_S;
@@ -5525,9 +5546,9 @@ async function redetect(){
       realGet('st-prog-s').textContent=(i+1)+' de '+n+' cuadros';
     }
     if(!M.cancel&&out.length){M.redet=out;M.kpSource='redet';}
-  }catch(e){console.error('[estudio]',e);realGet('st-warn').textContent='No se pudo volver a detectar en este celular.';realGet('st-warn').hidden=false;}
+  }catch(e){console.error('[estudio]',e);M.redetErr=true;}
   box.hidden=true;M.busy=false;
-  paintSource();buildEvents();resetReplay();
+  paintSource();paintWarn();buildEvents();resetReplay();
   await seek(here);renderAt(v.currentTime);paintTime(v.currentTime);fitStage();
 }
 
