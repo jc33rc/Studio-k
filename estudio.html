@@ -5038,7 +5038,7 @@ root.innerHTML=`
   <p class="st-note">El registro también queda guardado en este celular y aparece en Montar.</p>
   <div class="st-prompt" id="st-prompt"></div>
   <button class="st-second" id="st-copy">Copiar prompt para Genjutsu</button>
-  <button class="st-second" id="st-again">Otra toma</button>
+  <button class="st-second" id="st-again">Menú</button>
 </section>
 <section class="st-view" id="st-v-mon" hidden>
   <div class="st-head"><button class="st-back" data-home aria-label="Volver">‹</button><h2>Montar</h2></div>
@@ -5322,11 +5322,17 @@ realGet('st-mon-go').addEventListener('click',async()=>{
 
 function fitStage(){
   if(!M.ready)return;
-  const st=realGet('screen-session'),panel=realGet('st-panel');
+  const st=realGet('screen-session'),panel=realGet('st-panel'),real=realGet('ar-canvas');
   const ph=(M.taking||panel.hidden)?0:panel.offsetHeight;
-  const sw=window.innerWidth,sh=window.innerHeight-ph;
-  const k=Math.min(sw/M.L.w,sh/M.L.h);
-  st.style.transform='translate('+((sw-M.L.w*k)/2)+'px,'+((sh-M.L.h*k)/2)+'px) scale('+k+')';
+  const sw=window.innerWidth,availH=window.innerHeight-ph;
+  // El escenario es la pantalla completa, como la app nativa; con el panel abierto solo se encoge.
+  const fullH=M.taking?window.innerHeight:Math.max(window.innerHeight,screen.height||0);
+  const k=Math.min(1,availH/fullH);
+  st.style.width=sw+'px';st.style.height=fullH+'px';
+  st.style.transform='translate('+((sw-sw*k)/2)+'px,'+((availH-fullH*k)/2)+'px) scale('+k+')';
+  // El canvas conserva el tamano de la sesion grabada y se amplia hasta llenar, sin barras.
+  const C=M.L,kc=Math.max(sw/C.w,fullH/C.h),cw=C.w*kc,ch=C.h*kc;
+  Object.assign(real.style,{inset:'auto',left:((sw-cw)/2)+'px',top:((fullH-ch)/2)+'px',right:'auto',bottom:'auto',width:cw+'px',height:ch+'px'});
 }
 
 // El motor sigue viendo un canvas de tamano CSS (sus medidas fijas en pixeles no cambian) y por
@@ -5334,7 +5340,7 @@ function fitStage(){
 function installCanvas(W,H){
   const dpr=window.devicePixelRatio||1;
   const sw=Math.max(window.innerWidth,screen.width||0),sh=Math.max(window.innerHeight,screen.height||0);
-  const f=Math.max(1,Math.min(1620/W,Math.min(sw/W,sh/H)*dpr));
+  const f=Math.max(1,Math.min(1620/W,Math.max(sw/W,sh/H)*dpr));
   M.f=f;
   const real=realGet('ar-canvas');
   real.width=Math.round(W*f);real.height=Math.round(H*f);
@@ -5440,7 +5446,8 @@ async function startMontar(file,log){
   if(!v.requestVideoFrameCallback)throw new Error('rVFC');
   M.log=log;
   for(const f of log.frames)f.K=f.k.map(p=>({x:p[0],y:p[1],score:p[2]}));
-  const H=log.canvas.h,W=Math.round(H*v.videoWidth/v.videoHeight);
+  // Mismo canvas de la sesion grabada: el motor recorta el video igual que en la app.
+  const H=log.canvas.h,W=log.canvas.w;
   M.L={w:W,h:H};
   document.body.style.background='#000';document.documentElement.style.background='#000';
   // Mismo arnes que render_app.js: sin camara, modelo, cuenta ni temporizadores.
@@ -5450,7 +5457,7 @@ async function startMontar(file,log){
   const _ps=playSound;playSound=t=>{if(!M.mute)_ps(t);};
   window.requestAnimationFrame=()=>0;
   const st=realGet('screen-session');
-  Object.assign(st.style,{inset:'auto',left:'0',top:'0',right:'auto',bottom:'auto',width:W+'px',height:H+'px',transformOrigin:'0 0',animation:'none'});
+  Object.assign(st.style,{inset:'auto',left:'0',top:'0',right:'auto',bottom:'auto',transformOrigin:'0 0',animation:'none'});
   installCanvas(W,H);
   S.user.sound=false;
   applyDom(log.dom||'right');
