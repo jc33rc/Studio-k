@@ -3108,6 +3108,8 @@ setTimeout(function(){
 .st-info{font-size:12px;line-height:1.4;font-weight:700;color:var(--cyan)}
 #st-info[hidden]{display:none}
 #st-panel>.st-second{width:100%;min-height:42px}
+#st-panel .st-row .st-primary{flex:1 1 0;min-width:0}
+#st-panel .st-row #st-share{min-height:48px;padding:0 16px}
 #st-panel .st-primary{min-height:48px}
 #st-panel .st-note{font-size:11px;text-align:center}
 #st-tap{position:fixed;inset:0;z-index:1001;background:transparent}
@@ -5023,11 +5025,11 @@ root.innerHTML=`
   </div>
   <label class="st-field">Dificultad<select id="st-diff"></select></label>
   <label class="st-field">Largo de la toma<select id="st-len"></select></label>
-  <p class="st-note">La toma empieza en el 3 de la cuenta: los primeros 4 s son 3-2-1 y ¡YA!. Con 15 s quedan unos 11 s de rutina. Genjutsu pide entre 4 y 30 s.</p>
+  <p class="st-note">La toma empieza en el 1 de la cuenta: 1 s con el óvalo y los puntos, 1 s de ¡YA! y luego la rutina. Con 6 s quedan unos 4 s de golpes. Genjutsu pide entre 4 y 30 s.</p>
   <p class="st-fmt" id="st-fmt">Formato: comprobando…</p>
   <ol class="st-steps">
     <li>Ubícate como siempre, con la cara justo debajo del reloj.</li>
-    <li>La grabación arranca en el 3 de la cuenta.</li>
+    <li>La grabación arranca en el 1 de la cuenta y se corta sola.</li>
     <li>Quédate en guardia hasta el ¡YA! y entrena.</li>
     <li>Si un golpe no cuenta, repite la toma.</li>
   </ol>
@@ -5039,6 +5041,7 @@ root.innerHTML=`
   <p class="st-fmt" id="st-done-warn" hidden></p>
   <button class="st-primary" id="st-dl-v">Descargar video</button>
   <button class="st-primary" id="st-dl-j">Descargar registro</button>
+  <button class="st-second" id="st-share-v">Compartir video</button>
   <p class="st-note">El registro también queda guardado en este celular y aparece en Montar.</p>
   <div class="st-prompt" id="st-prompt"></div>
   <button class="st-second" id="st-copy">Copiar prompt para Genjutsu</button>
@@ -5063,7 +5066,7 @@ shell.innerHTML=`
   <div class="st-row"><span class="st-lbl">Desfase</span><button class="st-second" id="st-off-m" aria-label="Restar un cuadro">−</button><input type="range" id="st-off" min="-1500" max="1500" step="1" value="0" aria-label="Desfase"><button class="st-second" id="st-off-p" aria-label="Sumar un cuadro">+</button><output id="st-off-v">0 ms</output></div>
   <div class="st-row"><button class="st-second st-grow" id="st-cut">Fijar inicio aquí</button><output id="st-cut-v"></output><button class="st-second st-grow" id="st-sync">Sincronizar</button></div>
   <div class="st-row"><button class="st-second st-grow" id="st-src">Cuerpo: toma</button><button class="st-second st-grow" id="st-snd">Sonido: no</button><button class="st-second" id="st-exit">Salir</button></div>
-  <button class="st-primary" id="st-export">Exportar video</button>
+  <div class="st-row"><button class="st-primary" id="st-export">Exportar video</button><button class="st-second" id="st-share" disabled>Compartir</button></div>
   <button class="st-second" id="st-shoot">Tomar con grabadora</button>
 </div>
 <div id="st-tap" hidden></div>
@@ -5081,6 +5084,15 @@ function download(blob,name){
   setTimeout(()=>URL.revokeObjectURL(a.href),60000);
 }
 function stamp(){const d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());}
+// Compartir abre el menu de Android (Fotos, TikTok, WhatsApp...). Si el navegador no lo
+// permite, descarga el archivo.
+async function shareBlob(blob,name){
+  try{
+    const file=new File([blob],name,{type:blob.type||'video/mp4'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'KinearFit'});return;}
+  }catch(e){if(e&&e.name==='AbortError')return;console.error('[estudio] share',e);}
+  download(blob,name);
+}
 function goFull(){
   const el=document.documentElement;
   if(document.fullscreenElement||!el.requestFullscreen)return;
@@ -5121,7 +5133,7 @@ function wcConfig(c,w,h){
   return cfg;
 }
 
-const G={t0:0,recording:false,ending:false,frames:[],hits:[],guide:[],goT:null,sessionStart:null,poseT:0,maxMs:15000,fmt:null,stopRec:null,timer:null,tick:null,cfg:null,blob:null,log:null};
+const G={t0:0,recording:false,ending:false,frames:[],hits:[],guide:[],goT:null,sessionStart:null,poseT:0,maxMs:6000,fmt:null,stopRec:null,timer:null,tick:null,cfg:null,blob:null,log:null};
 const relT=()=>Math.round(performance.now()-G.t0);
 
 function startMR(stream,fmt){
@@ -5130,6 +5142,75 @@ function startMR(stream,fmt){
   r.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
   G.stopRec=()=>new Promise(res=>{r.onstop=()=>res(new Blob(chunks,{type:fmt.mime.split(';')[0]}));r.stop();});
   r.start(500);
+}
+
+// Chrome guarda el MP4 en bloques (fragmentado) y con la duracion en cero: la galeria lo lee
+// como si durara solo el primer bloque. Aqui se rearma como un MP4 normal, sin volver a
+// comprimir: los mismos cuadros, con sus tiempos, en un solo bloque y con la duracion real.
+function remuxFragmented(buf){
+  const u8=new Uint8Array(buf),dv=new DataView(buf);
+  const boxes=(s,e)=>{const out=[];let i=s;while(i+8<=e){let sz=dv.getUint32(i),h=8;const t=String.fromCharCode(u8[i+4],u8[i+5],u8[i+6],u8[i+7]);
+    if(sz===1){sz=Number(dv.getBigUint64(i+8));h=16;}else if(sz===0)sz=e-i;if(sz<h||i+sz>e)break;out.push({t,s:i,h:i+h,e:i+sz});i+=sz;}return out;};
+  const find=(l,t)=>l.find(b=>b.t===t);
+  const top=boxes(0,u8.length),moov=find(top,'moov');
+  if(!moov||!top.some(b=>b.t==='moof'))return null;          // ya es un MP4 normal
+  const mv=boxes(moov.h,moov.e),trak=find(mv,'trak'),mdia=find(boxes(trak.h,trak.e),'mdia'),md=boxes(mdia.h,mdia.e);
+  const mdhd=find(md,'mdhd'),timescale=dv.getUint32(mdhd.h+(u8[mdhd.h]===1?20:12));
+  const minf=find(md,'minf'),stbl=find(boxes(minf.h,minf.e),'stbl'),stsd=find(boxes(stbl.h,stbl.e),'stsd');
+  const entry=boxes(stsd.h+8,stsd.e)[0];
+  if(!entry||!/^avc[13]$/.test(entry.t))return null;
+  const W=dv.getUint16(entry.h+24),H=dv.getUint16(entry.h+26);
+  const avcC=find(boxes(entry.h+78,entry.e),'avcC');if(!avcC)return null;
+  const desc=u8.slice(avcC.h,avcC.e);
+  const codec='avc1.'+[desc[1],desc[2],desc[3]].map(x=>x.toString(16).padStart(2,'0')).join('');
+  let tDur=0,tSize=0,tFlags=0;
+  const mvex=find(mv,'mvex'),trex=mvex&&find(boxes(mvex.h,mvex.e),'trex');
+  if(trex){tDur=dv.getUint32(trex.h+12);tSize=dv.getUint32(trex.h+16);tFlags=dv.getUint32(trex.h+20);}
+  const samples=[];
+  for(const mo of top.filter(b=>b.t==='moof')){
+    for(const tf of boxes(mo.h,mo.e).filter(b=>b.t==='traf')){
+      const tb=boxes(tf.h,tf.e),tfhd=find(tb,'tfhd'),fl=dv.getUint32(tfhd.h)&0xffffff;
+      let p=tfhd.h+8,base=mo.s,dDur=tDur,dSize=tSize,dFlags=tFlags;
+      if(fl&1){base=Number(dv.getBigUint64(p));p+=8;}
+      if(fl&2)p+=4;
+      if(fl&8){dDur=dv.getUint32(p);p+=4;}
+      if(fl&0x10){dSize=dv.getUint32(p);p+=4;}
+      if(fl&0x20){dFlags=dv.getUint32(p);p+=4;}
+      const tfdt=find(tb,'tfdt');
+      let dts=tfdt?(u8[tfdt.h]===1?Number(dv.getBigUint64(tfdt.h+4)):dv.getUint32(tfdt.h+4)):(samples.length?samples[samples.length-1].dts+samples[samples.length-1].dur:0);
+      let cur=null;
+      for(const tr of tb.filter(b=>b.t==='trun')){
+        const v=u8[tr.h],tfl=dv.getUint32(tr.h)&0xffffff;let q=tr.h+4;const n=dv.getUint32(q);q+=4;
+        let off=cur==null?base:cur;if(tfl&1){off=base+dv.getInt32(q);q+=4;}
+        let first=null;if(tfl&4){first=dv.getUint32(q);q+=4;}
+        for(let i=0;i<n;i++){
+          let dur=dDur,size=dSize,flags=(i===0&&first!=null)?first:dFlags,cto=0;
+          if(tfl&0x100){dur=dv.getUint32(q);q+=4;}
+          if(tfl&0x200){size=dv.getUint32(q);q+=4;}
+          if(tfl&0x400){flags=dv.getUint32(q);q+=4;}
+          if(tfl&0x800){cto=v===0?dv.getUint32(q):dv.getInt32(q);q+=4;}
+          if(off+size>u8.length)return null;
+          samples.push({off,size,dts,dur,cto,key:!(flags&0x10000)});
+          off+=size;dts+=dur;
+        }
+        cur=off;
+      }
+    }
+  }
+  if(!samples.length||!samples[0].key)return null;
+  const target=new Mp4Muxer.ArrayBufferTarget();
+  const mux=new Mp4Muxer.Muxer({target,video:{codec:'avc',width:W,height:H},fastStart:'in-memory',firstTimestampBehavior:'offset'});
+  const t0=samples[0].dts,us=x=>x/timescale*1e6;
+  samples.forEach((s,i)=>{
+    const meta=i===0?{decoderConfig:{codec,codedWidth:W,codedHeight:H,description:desc}}:undefined;
+    mux.addVideoChunkRaw(u8.slice(s.off,s.off+s.size),s.key?'key':'delta',us(s.dts-t0),us(s.dur),meta,s.cto?us(s.cto):undefined);
+  });
+  mux.finalize();
+  return new Blob([target.buffer],{type:'video/mp4'});
+}
+async function fixMp4(blob){
+  try{const out=remuxFragmented(await blob.arrayBuffer());return out&&out.size?out:blob;}
+  catch(e){console.error('[estudio] remux',e);return blob;}
 }
 function startWC(stream,fmt){
   const track=stream.getVideoTracks()[0].clone();
@@ -5208,10 +5289,11 @@ async function finishTake(){
   const vw=v.videoWidth,vh=v.videoHeight;
   let blob=null;
   try{blob=await G.stopRec();}catch(e){console.error('[estudio]',e);}
+  if(blob&&blob.size&&G.fmt.ext==='mp4')blob=await fixMp4(blob);
   G.cropOn=false;
   if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
   realGet('st-rec').hidden=true;
-  if(G.goT==null)G.goT=3000;
+  if(G.goT==null)G.goT=1000;
   if(G.sessionStart==null)G.sessionStart=G.goT+1000;
   const cfg=G.cfg;
   const log={v:1,app:APP,created:new Date().toISOString(),
@@ -5238,7 +5320,7 @@ async function finishTake(){
 }
 
 function enterGrabar(cfg){
-  G.cfg=cfg;G.maxMs=cfg.seconds*1000;
+  G.cfg=cfg;G.maxMs=cfg.seconds*1000+300;   // un margen corto para que el clon alcance los segundos elegidos
   if(cfg.custom){RUTINAS.push({id:'estudio_custom',name:cfg.name,seq:cfg.seq.slice(),level:cfg.level,fact:''});cfg.idx=RUTINAS.length-1;}
   S.selCombo=cfg.idx;
   const _lm=loadMoveNet;
@@ -5259,11 +5341,11 @@ function enterGrabar(cfg){
     }
     _hit(mk,pos);
   };
-  // La grabacion arranca en el 3 y el registro guarda cada paso de la cuenta.
+  // La grabacion arranca en el 1 y el registro guarda el 1 y el ¡YA!.
   const _sgc=showGuideCount;
   showGuideCount=function(t){
     _sgc(t);
-    if(t===3)startRec();
+    if(t===1)startRec();
     if(!G.recording)return;
     G.guide.push({t:relT(),v:t});
     if(t==='¡YA!')G.goT=relT();
@@ -5281,8 +5363,8 @@ function setupRecForm(){
   sel.value=String(Math.min(1,RUTINAS.length-1));
   realGet('st-diff').innerHTML=Object.keys(DIFF).map(k=>'<option value="'+k+'">'+DIFF[k].level+' ('+Math.round(DIFF[k].dur/60)+' min)</option>').join('');
   realGet('st-diff').value='medium';
-  realGet('st-len').innerHTML=[8,10,15,20,30].map(s=>'<option value="'+s+'">'+s+' s</option>').join('');
-  realGet('st-len').value='15';
+  realGet('st-len').innerHTML=[6,8,10].map(s=>'<option value="'+s+'">'+s+' s</option>').join('');
+  realGet('st-len').value='6';
   realGet('st-chips').innerHTML=Object.keys(MOVES).filter(k=>MOVES[k].kp>=0).map(k=>'<button data-mv="'+k+'" style="color:'+MOVES[k].color+'">'+MOVES[k].label+'</button>').join('');
   const paint=()=>{realGet('st-seq').textContent=customSeq.length?customSeq.map(k=>MOVES[k].label).join(' · '):'Toca los golpes en orden';refreshRecBtn();};
   realGet('st-chips').addEventListener('click',e=>{const m=e.target&&e.target.dataset&&e.target.dataset.mv;if(m){customSeq.push(m);paint();}});
@@ -5306,6 +5388,7 @@ realGet('st-rec-go').addEventListener('click',()=>{
   enterGrabar({custom,idx:custom?-1:+v,id:custom?'estudio_custom':r.id,name:custom?customSeq.map(k=>MOVES[k].label).join('-'):r.name,seq:custom?customSeq.slice():r.seq.slice(),level:custom?'Intermedio':r.level,diff:realGet('st-diff').value,seconds:+realGet('st-len').value});
 });
 realGet('st-dl-v').addEventListener('click',()=>download(G.blob,G.base+'.'+G.fmt.ext));
+realGet('st-share-v').addEventListener('click',()=>{if(G.blob)shareBlob(G.blob,G.base+'.'+G.fmt.ext);});
 realGet('st-dl-j').addEventListener('click',()=>download(new Blob([JSON.stringify(G.log)],{type:'application/json'}),G.base+'.json'));
 realGet('st-prompt').textContent=PROMPT;
 realGet('st-copy').addEventListener('click',async e=>{try{await navigator.clipboard.writeText(PROMPT);e.target.textContent='Copiado';}catch(x){e.target.textContent='No se pudo copiar';}});
@@ -5385,11 +5468,18 @@ function installCanvas(W,H){
   document.getElementById=id=>(id==='ar-canvas'?proxy:realGet(id));
   const _bs=buildSphere;
   buildSphere=function(color,R){const sp=_bs(color,Math.round(R*f));return {cv:sp.cv,R:sp.R/f,ext:sp.ext/f};};
-  // El ovalo FACE va justo debajo del reloj, medido en las coordenadas del canvas ampliado.
+  // El ovalo FACE, mismo tamano que en la app, va sobre la cara del clon: Genjutsu puede dejar
+  // la cara del personaje mas arriba o mas abajo que la tuya. Sin cara visible, va bajo el reloj.
   frameGeom=function(c){
+    const h=c.height*FRAME.ovalH,w=h*FRAME.ovalAspect;
+    const nose=currKpts&&currKpts[KP.NOSE];
+    if(nose&&nose.score>=0.3){
+      const p=camDisplayMap(c)(nose),cy=p.y-h*0.06;
+      return {cx:p.x,cy:cy,w:w,h:h,top:cy-h/2,bottom:cy+h/2};
+    }
     const t=realGet('hud-tmr'),r=t&&t.getBoundingClientRect(),cr=real.getBoundingClientRect();
     const below=(r&&r.height&&cr.height)?(r.bottom-cr.top)*c.height/cr.height:c.height*.14;
-    const h=c.height*FRAME.ovalH,w=h*FRAME.ovalAspect,top=below+c.height*FRAME.gap;
+    const top=below+c.height*FRAME.gap;
     return {cx:c.width/2,cy:top+h/2,w:w,h:h,top:top,bottom:top+h};
   };
 }
@@ -5489,6 +5579,7 @@ function setOffset(ms){
 function cutEnd(){return Math.min(M.cutStart+CUT_S,vid().duration);}
 function paintCut(){
   realGet('st-cut-v').textContent=fmtS(M.cutStart).replace(' s','')+'→'+fmtS(cutEnd());
+  realGet('st-export').textContent='Exportar '+(Math.round((cutEnd()-M.cutStart)*10)/10).toString().replace('.',',')+' s';
 }
 // Inicio sugerido: el "1" de la cuenta (1 s de conteo y luego el entrenamiento).
 function defaultCut(){
@@ -5753,8 +5844,8 @@ async function exportar(){
     if(!M.cancel){
       await enc.flush();enc.close();muxer.finalize();
       const blob=new Blob([target.buffer],{type:'video/mp4'});
-      M.lastExport=blob;
-      download(blob,'kinearfit_anuncio_'+stamp()+'.mp4');
+      M.lastExport=blob;M.lastExportName='kinearfit_anuncio_'+stamp()+'.mp4';realGet('st-share').disabled=false;
+      download(blob,M.lastExportName);
       info('Video exportado: '+OW+'×'+OH+', '+(N/30).toFixed(1).replace('.',',')+' s. Quedó en Descargas.');
     }else{try{enc.close();}catch(e){}}
   }catch(e){console.error('[estudio]',e);info('');const w=realGet('st-warn');w.textContent='No se pudo exportar: '+(e&&e.message||e)+'. Usa Tomar con grabadora.';w.hidden=false;}
@@ -5793,13 +5884,14 @@ realGet('st-src').addEventListener('click',()=>{
 });
 realGet('st-exit').addEventListener('click',()=>location.reload());
 realGet('st-export').addEventListener('click',exportar);
+realGet('st-share').addEventListener('click',()=>{if(M.lastExport)shareBlob(M.lastExport,M.lastExportName);});
 realGet('st-shoot').addEventListener('click',tomar);
 realGet('st-tap').addEventListener('click',salirToma);
 window.addEventListener('resize',fitStage);
 document.addEventListener('fullscreenchange',fitStage);
 
 /* ========== ARRANQUE ========== */
-window.__estudio={G,M,renderAt,buildEvents,resetReplay,setOffset,detectFormat,startMontar,finishTake,WC_CODECS,startRec,autoSync,runSync,exportar,hudImage};
+window.__estudio={remuxFragmented,fixMp4,G,M,renderAt,buildEvents,resetReplay,setOffset,detectFormat,startMontar,finishTake,WC_CODECS,startRec,autoSync,runSync,exportar,hudImage};
 setupRecForm();
 // La app cierra su splash a los 2,3 s; despues de eso el estudio ya no compite por la pantalla.
 setTimeout(()=>{
