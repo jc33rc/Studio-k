@@ -3109,13 +3109,19 @@ setTimeout(function(){
 #st-info[hidden]{display:none}
 #st-panel>.st-second{width:100%;min-height:42px}
 #st-panel .st-row .st-primary{flex:1 1 0;min-width:0}
-#st-panel .st-row #st-share{min-height:48px;padding:0 16px}
+#st-panel .st-row #st-share,#st-panel .st-row #st-fmt-b{min-height:48px;padding:0 12px}
 #st-panel .st-primary{min-height:48px}
 #st-panel .st-note{font-size:11px;text-align:center}
 #st-tap{position:fixed;inset:0;z-index:1001;background:transparent}
 #st-progress{position:fixed;inset:0;z-index:1002;background:rgba(8,10,18,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-family:var(--font);color:#fff;padding:24px;text-align:center}
 #st-progress b{font-size:18px}
 #st-progress span{font-size:14px;color:var(--muted)}
+
+#st-enc-prev{display:block;max-width:100%;max-height:58vh;margin:0 auto;border-radius:12px;border:1px solid var(--border)}
+#st-enc-prev[hidden],#st-enc-info[hidden],#st-enc-json-row[hidden]{display:none}
+
+#st-panel .st-row .st-second{padding:0 8px}
+@media (max-width:380px){#st-panel .st-row .st-second{font-size:12px;padding:0 6px}#st-panel .st-row{gap:5px}}
 </style>
 <script data-lib="mp4-muxer@5.1.3 (MIT)">"use strict";
 var Mp4Muxer = (() => {
@@ -5012,6 +5018,7 @@ root.innerHTML=`
 <section class="st-view" id="st-v-home">
   <div class="st-brand">Kinear<span>Fit</span><em>Estudio</em></div>
   <button class="st-card" id="st-to-rec" disabled><b>Grabar</b><span>Sesión real. Descargas el video crudo y el registro.</span></button>
+  <button class="st-card" id="st-to-enc" disabled><b>Encuadrar personaje</b><span>Recorta la imagen de Gemini al encuadre de tu toma, antes de Genjutsu.</span></button>
   <button class="st-card" id="st-to-mon" disabled><b>Montar</b><span>Video de Higgsfield con la capa de la app encima.</span></button>
   <p class="st-note" id="st-boot">Preparando…</p>
 </section>
@@ -5047,6 +5054,19 @@ root.innerHTML=`
   <button class="st-second" id="st-copy">Copiar prompt para Genjutsu</button>
   <button class="st-second" id="st-again">Menú</button>
 </section>
+<section class="st-view" id="st-v-enc" hidden>
+  <div class="st-head"><button class="st-back" data-home aria-label="Volver">‹</button><h2>Encuadrar personaje</h2></div>
+  <label class="st-field">Toma de referencia<select id="st-enc-take"></select></label>
+  <label class="st-field" id="st-enc-json-row">Archivo de registro<input type="file" id="st-enc-json" accept="application/json,.json,text/plain"></label>
+  <label class="st-field">Imagen del personaje<input type="file" id="st-enc-img" accept="image/*"></label>
+  <p class="st-note">El personaje queda a la altura y el tamaño en que estabas tú en esa toma. A Gemini pídele la persona de la cabeza a media pantorrilla.</p>
+  <p class="st-fmt bad" id="st-enc-msg" hidden></p>
+  <button class="st-primary" id="st-enc-go" disabled>Encuadrar</button>
+  <img id="st-enc-prev" alt="Vista previa del personaje encuadrado" hidden>
+  <p class="st-fmt" id="st-enc-info" hidden></p>
+  <button class="st-primary" id="st-enc-dl" hidden>Descargar imagen</button>
+  <button class="st-second" id="st-enc-share" hidden>Compartir</button>
+</section>
 <section class="st-view" id="st-v-mon" hidden>
   <div class="st-head"><button class="st-back" data-home aria-label="Volver">‹</button><h2>Montar</h2></div>
   <label class="st-field">Video de Higgsfield<input type="file" id="st-file-v" accept="video/*"></label>
@@ -5065,15 +5085,15 @@ shell.innerHTML=`
   <div class="st-row"><button class="st-second" id="st-play" aria-label="Reproducir">▶</button><button class="st-second" id="st-prev" aria-label="Cuadro anterior">−1</button><button class="st-second" id="st-next" aria-label="Cuadro siguiente">+1</button><input type="range" id="st-tl" min="0" max="1" step="0.001" value="0" aria-label="Línea de tiempo"><output id="st-time">0,00 s</output></div>
   <div class="st-row"><span class="st-lbl">Desfase</span><button class="st-second" id="st-off-m" aria-label="Restar un cuadro">−</button><input type="range" id="st-off" min="-1500" max="1500" step="1" value="0" aria-label="Desfase"><button class="st-second" id="st-off-p" aria-label="Sumar un cuadro">+</button><output id="st-off-v">0 ms</output></div>
   <div class="st-row"><button class="st-second st-grow" id="st-cut">Fijar inicio aquí</button><output id="st-cut-v"></output><button class="st-second st-grow" id="st-sync">Sincronizar</button></div>
-  <div class="st-row"><button class="st-second st-grow" id="st-src">Cuerpo: toma</button><button class="st-second st-grow" id="st-snd">Sonido: no</button><button class="st-second" id="st-exit">Salir</button></div>
-  <div class="st-row"><button class="st-primary" id="st-export">Exportar video</button><button class="st-second" id="st-share" disabled>Compartir</button></div>
+  <div class="st-row"><button class="st-second st-grow" id="st-src">Cuerpo: toma</button><button class="st-second st-grow" id="st-snap" disabled>Ajuste: sí</button><button class="st-second st-grow" id="st-snd">Sonido: no</button><button class="st-second" id="st-exit">Salir</button></div>
+  <div class="st-row"><button class="st-primary" id="st-export">Exportar video</button><button class="st-second" id="st-fmt-b">Celular</button><button class="st-second" id="st-share" disabled>Compartir</button></div>
   <button class="st-second" id="st-shoot">Tomar con grabadora</button>
 </div>
 <div id="st-tap" hidden></div>
 <div id="st-progress" data-no-i18n hidden><b id="st-prog-t"></b><span id="st-prog-s"></span><button class="st-second" id="st-prog-x">Cancelar</button></div>`;
 while(shell.firstChild)document.body.appendChild(shell.firstChild);
 
-const VIEWS=['home','rec','done','mon'];
+const VIEWS=['home','rec','done','mon','enc'];
 function show(v){VIEWS.forEach(n=>{realGet('st-v-'+n).hidden=(n!==v);});root.hidden=false;root.scrollTop=0;}
 function hideRoot(){root.hidden=true;}
 root.querySelectorAll('[data-home]').forEach(b=>b.addEventListener('click',()=>show('home')));
@@ -5395,7 +5415,7 @@ realGet('st-copy').addEventListener('click',async e=>{try{await navigator.clipbo
 realGet('st-again').addEventListener('click',()=>location.reload());
 
 /* ========== MODO MONTAR ========== */
-const M={file:null,log:null,takes:[],T0:0,fake:null,offset:0,events:[],evI:0,lastLogT:-1e9,cutStart:0,cutEndMs:0,kpSource:'log',redet:null,mute:true,sound:false,taking:false,busy:false,cancel:false,hold:null,L:{w:360,h:640},f:1,seq:[],canvas:null,ready:false,scrubbing:false,box:null,lay:null,offMin:-1500,offMax:1500};
+const M={snap:true,snapInfo:null,file:null,log:null,takes:[],T0:0,fake:null,offset:0,events:[],evI:0,lastLogT:-1e9,cutStart:0,cutEndMs:0,kpSource:'log',redet:null,mute:true,sound:false,taking:false,busy:false,cancel:false,hold:null,L:{w:360,h:640},f:1,seq:[],canvas:null,ready:false,scrubbing:false,box:null,lay:null,offMin:-1500,offMax:1500};
 const vid=()=>realGet('cam-video');
 
 async function setupMontarForm(){
@@ -5503,6 +5523,54 @@ function guideSteps(log){
   if(Array.isArray(log.guide)&&log.guide.length)return log.guide;
   return [{t:log.goT-1000,v:1},{t:log.goT,v:'¡YA!'}];
 }
+// Ajuste por golpe: cada golpe del registro se mueve, dentro de +-0,3 s, al cuadro donde el
+// puno del clon pasa mas cerca de su esfera (calculada como la app, con los hombros del clon).
+// Si el clon no lanza nada cerca, el golpe queda como en la toma y se avisa en que segundo.
+const SNAP_MS=300;
+function snapHits(frames){
+  const c=M.canvas,out=[],miss=[];let prev=-1e9,moved=0;
+  for(const h of M.log.hits){
+    const mv=MOVES[h.mv];let t=h.t;
+    if(mv&&mv.kp>=0){
+      const kp=h.kp!=null?h.kp:mv.kp,lo=Math.max(h.t-SNAP_MS,prev+100),hi=h.t+SNAP_MS;
+      // Solo cuentan cuadros a los que el puno llego avanzando en la direccion de ataque del golpe
+      // (la misma atkDir que valida la app): asi no cuentan la guardia, que tambien queda cerca de
+      // las esferas de la cara, ni el regreso del brazo. Entre los validos gana el mas cercano a la
+      // esfera, con una penalizacion pequena por alejarse del momento de la toma.
+      const lim=mv.size*(mv.velType==='lateral'?2.6:2.0);
+      let best=null;
+      for(let i=0;i<frames.length;i++){
+        const f=frames[i];if(f.t<lo)continue;if(f.t>hi)break;
+        const K=f.K,w=K[kp];if(!w||w.score<0.2)continue;
+        const pb=frames[Math.max(0,i-3)].K[kp];if(!pb||pb.score<0.2)continue;
+        const dx=w.x-pb.x,dy=(w.y-pb.y)*c.height/c.width;
+        const prog=mv.atkDir==='up'?-dy:mv.atkDir==='down'?dy:mv.atkDir==='left'?-dx:mv.atkDir==='right'?dx:mv.atkDir==='lateral'?Math.abs(dx):Math.hypot(dx,dy);
+        if(prog<0.02)continue;
+        const ls=K[KP.LS],rs=K[KP.RS],ok=ls&&rs&&ls.score>=0.25&&rs.score>=0.25;
+        const bx=ok?(ls.x+rs.x)/2:.5,by=ok?(ls.y+rs.y)/2:.35;
+        const d=Math.hypot((w.x-(bx+mv.offX))*c.width,(w.y-(by+mv.offY))*c.height)/c.width;
+        const cost=d/lim+0.35*Math.abs(f.t-h.t)/SNAP_MS;
+        if(!best||cost<best.cost)best={d,cost,t:f.t};
+      }
+      if(best&&best.d<=lim){if(Math.abs(best.t-h.t)>STEP/2)moved++;t=best.t;}
+      else miss.push(Math.max(0,(h.t+M.offset)/1000));
+    }
+    t=Math.max(t,prev+100);prev=t;out.push({t,h});
+  }
+  M.snapInfo={moved,miss,total:M.log.hits.length};
+  return out;
+}
+function snapOn(){return M.snap&&M.kpSource==='redet'&&!!M.redet;}
+function snapText(){
+  const s=M.snapInfo;if(!snapOn()||!s)return '';
+  let t='Ajuste por golpe: '+s.moved+' de '+s.total+' movidos.';
+  if(s.miss.length)t+=' Sin puño claro en '+s.miss.map(x=>x.toFixed(1).replace('.',',')).join(', ')+' s.';
+  return t;
+}
+function paintSnap(){
+  const b=realGet('st-snap');b.textContent='Ajuste: '+(M.snap?'sí':'no');
+  b.disabled=!(M.kpSource==='redet'&&M.redet);
+}
 function buildEvents(){
   const log=M.log,ev=[],off=M.offset;
   const frames=(M.kpSource==='redet'&&M.redet)?redetFrames(off):log.frames;
@@ -5512,7 +5580,8 @@ function buildEvents(){
   ev.push({t:log.sessionStart,o:3,type:'end'});
   const endMs=vid().duration*1000+Math.abs(off)+1000;
   for(let s=1;log.sessionStart+s*1000<=endMs;s++)ev.push({t:log.sessionStart+s*1000,o:4,type:'tick',s});
-  for(const h of log.hits)ev.push({t:h.t,o:5,type:'hit',h});
+  const hitEvs=snapOn()?snapHits(frames):log.hits.map(h=>({t:h.t,h}));
+  for(const x of hitEvs)ev.push({t:x.t,o:5,type:'hit',h:x.h});
   ev.sort((a,b)=>a.t-b.t||a.o-b.o);
   M.events=ev;
 }
@@ -5656,8 +5725,9 @@ function autoSync(){
 }
 function runSync(){
   const s=autoSync();
-  if(s){setOffset(s.ms);defaultCut();info('Sincronizado solo: '+(s.ms>0?'+':'')+s.ms+' ms.');}
-  else info(M.redet?'':'Sin detección del clon: desfase en 0.');
+  if(s){setOffset(s.ms);defaultCut();info(('Sincronizado solo: '+(s.ms>0?'+':'')+s.ms+' ms. '+snapText()).trim());}
+  else info(M.redet?snapText():'Sin detección del clon: desfase en 0.');
+  paintSnap();
   paintWarn();
 }
 
@@ -5684,6 +5754,8 @@ async function startMontar(file,log){
   M.loadModel=loadMoveNet;
   startCamera=async()=>{};loadMoveNet=async()=>{};guideCountdown=async()=>{};startRoundTimer=()=>{};detectLoop=()=>{};
   endSession=()=>{};
+  // La toma ya valido la posicion: el ovalo se pone verde con la cara dentro, se vean o no las caderas.
+  guideHipsOk=()=>true;
   const _ps=playSound;playSound=t=>{if(!M.mute)_ps(t);};
   window.requestAnimationFrame=()=>0;
   const st=realGet('screen-session');
@@ -5762,14 +5834,26 @@ async function redetect(){
 }
 
 /* ---- Exportar: el corte en 9:16, cuadro por cuadro, con el HUD real de la app ---- */
-const EXPORT_CFGS=[{codec:'avc1.640028',w:1080,h:1920,br:12e6},{codec:'avc1.4D4028',w:1080,h:1920,br:12e6},{codec:'avc1.42E028',w:1080,h:1920,br:12e6},{codec:'avc1.42E01F',w:720,h:1280,br:6e6}];
-async function pickExportCfg(){
-  for(const c of EXPORT_CFGS){
-    const cfg={codec:c.codec,width:c.w,height:c.h,bitrate:c.br,framerate:30,avc:{format:'avc'}};
-    try{const r=await VideoEncoder.isConfigSupported(cfg);if(r.supported)return cfg;}catch(e){}
+// Formato del video exportado: 'cel' tiene la forma de la pantalla del celular (como un
+// screen record, sin barras en la galeria); '916' es el 9:16 estandar de TikTok.
+let FMT='cel';try{const f=localStorage.getItem('kf_estudio_fmt');if(f==='916'||f==='cel')FMT=f;}catch(e){}
+function exportBox(){
+  const bw=window.innerWidth;
+  const bh=FMT==='916'?Math.round(bw*16/9):Math.max(window.innerHeight,screen.height||0);
+  return {bw,bh};
+}
+async function pickExportCfg(bw,bh){
+  const ev=x=>Math.round(x/2)*2,cands=[];
+  for(const W of [1080,720]){
+    const H=ev(W*bh/bw),mbs=Math.ceil(W/16)*Math.ceil(H/16);
+    // Nivel H.264 segun el tamano del cuadro: 4.0 alcanza hasta 8192 macrobloques, 5.1 mas.
+    const lv=mbs<=3600?'1F':(mbs<=8192?'28':'33');
+    for(const p of ['6400','4D40','42E0'])cands.push({codec:'avc1.'+p+lv,width:W,height:H,bitrate:W===1080?12e6:6e6,framerate:30,avc:{format:'avc'}});
   }
+  for(const cfg of cands){try{const r=await VideoEncoder.isConfigSupported(cfg);if(r.supported)return cfg;}catch(e){}}
   return null;
 }
+function paintFmt(){realGet('st-fmt-b').textContent=FMT==='916'?'9:16':'Celular';}
 // El HUD es HTML: se pinta con el propio navegador (SVG con foreignObject), con las mismas
 // reglas de estilo de la app, la fuente y los iconos. Solo se vuelve a pintar cuando cambia.
 let hudCss=null,hudSprite=null;const hudCache={key:null,img:null};
@@ -5812,9 +5896,9 @@ async function exportar(){
   const here=v.currentTime;
   let err=null;
   try{
-    const cfg=await pickExportCfg();
+    const {bw,bh}=exportBox();
+    const cfg=await pickExportCfg(bw,bh);
     if(!cfg)throw new Error('Este navegador no puede codificar el video.');
-    const bw=window.innerWidth,bh=Math.round(bw*16/9);
     M.box={w:bw,h:bh};fitStage();await pause(60);
     const OW=cfg.width,OH=cfg.height,sc=OW/bw;
     const target=new Mp4Muxer.ArrayBufferTarget();
@@ -5880,24 +5964,128 @@ realGet('st-prog-x').addEventListener('click',()=>{M.cancel=true;});
 realGet('st-src').addEventListener('click',()=>{
   if(!M.redet){redetect();return;}
   M.kpSource=M.kpSource==='redet'?'log':'redet';
-  paintSource();paintWarn();buildEvents();resetReplay();renderAt(vid().currentTime);
+  paintSource();paintSnap();paintWarn();buildEvents();resetReplay();renderAt(vid().currentTime);
+});
+realGet('st-snap').addEventListener('click',()=>{
+  M.snap=!M.snap;paintSnap();buildEvents();resetReplay();renderAt(vid().currentTime);
+  info(snapOn()?snapText():'Ajuste por golpe apagado: golpes como en la toma.');
 });
 realGet('st-exit').addEventListener('click',()=>location.reload());
 realGet('st-export').addEventListener('click',exportar);
+realGet('st-fmt-b').addEventListener('click',()=>{FMT=FMT==='cel'?'916':'cel';try{localStorage.setItem('kf_estudio_fmt',FMT);}catch(e){}paintFmt();});
+paintFmt();
 realGet('st-share').addEventListener('click',()=>{if(M.lastExport)shareBlob(M.lastExport,M.lastExportName);});
 realGet('st-shoot').addEventListener('click',tomar);
 realGet('st-tap').addEventListener('click',salirToma);
 window.addEventListener('resize',fitStage);
 document.addEventListener('fullscreenchange',fitStage);
 
+/* ========== ENCUADRAR PERSONAJE ==========
+   Mide en la toma (con su registro) donde estaban tus ojos, hombros y caderas mientras estabas en
+   guardia, detecta lo mismo en la imagen de Gemini con el MoveNet de la app, y recorta la imagen
+   en 9:16 para que el personaje quede a esa misma altura y tamano. */
+const ENC={takes:[],fileLog:null,img:null,imgUrl:null,blob:null,name:null};
+const median=a=>{if(!a.length)return null;const s=a.slice().sort((x,y)=>x-y);return s[Math.floor(s.length/2)];};
+function takeProps(log){
+  const ok=p=>p&&p[2]>=0.3;
+  const meas=fs=>{const e=[],sh=[],h=[],c=[];
+    for(const f of fs){const k=f.k;
+      if(ok(k[KP.LE])&&ok(k[KP.RE]))e.push((k[KP.LE][1]+k[KP.RE][1])/2);
+      if(ok(k[KP.LS])&&ok(k[KP.RS])){sh.push((k[KP.LS][1]+k[KP.RS][1])/2);c.push(1-(k[KP.LS][0]+k[KP.RS][0])/2);}
+      if(ok(k[KP.LH])&&ok(k[KP.RH]))h.push((k[KP.LH][1]+k[KP.RH][1])/2);}
+    return {eyes:median(e),sh:median(sh),hips:median(h),cx:median(c),n:Math.min(e.length,h.length,c.length)};};
+  // En guardia, durante la cuenta, la postura es la mas parecida a la de la imagen.
+  let m=meas(log.frames.filter(f=>f.t<log.sessionStart));
+  if(m.n<3)m=meas(log.frames);
+  return m.n?m:null;
+}
+async function imgProps(img){
+  if(!detector)await loadMoveNet();
+  if(!detector)throw new Error('modelo');
+  if(detector.reset)detector.reset();
+  const poses=await detector.estimatePoses(img,undefined,performance.now());
+  if(!poses.length||!poses[0].keypoints)return null;
+  const k=poses[0].keypoints,ok=p=>p&&p.score>=0.3,pair=(a,b,c)=>ok(k[a])&&ok(k[b])?(k[a][c]+k[b][c])/2:null;
+  return {eyes:pair(KP.LE,KP.RE,'y'),sh:pair(KP.LS,KP.RS,'y'),hips:pair(KP.LH,KP.RH,'y'),cx:pair(KP.LS,KP.RS,'x')};
+}
+// Rectangulo 9:16 que deja ojos, caderas y centro de la imagen en las mismas fracciones que en la
+// toma. Si la imagen no alcanza, se achica el recorte (el personaje queda mas grande) y se avisa.
+function fitCrop(T,I,iw,ih){
+  // La escala sale de ojos a caderas; si las caderas no se ven en la imagen, de ojos a hombros.
+  const want=I.hips!=null?(I.hips-I.eyes)/(T.hips-T.eyes):(I.sh-I.eyes)/(T.sh-T.eyes),fe=T.eyes,fc=Math.min(0.9,Math.max(0.1,T.cx));
+  const H=Math.min(want,I.eyes/fe,(ih-I.eyes)/(1-fe),(I.cx/fc)*16/9,((iw-I.cx)/(1-fc))*16/9),W=H*9/16;
+  return {x:I.cx-fc*W,y:I.eyes-fe*H,w:W,h:H,scale:want/H};
+}
+async function encSetup(){
+  ENC.takes=(await DB.all()).sort((a,b)=>b.id.localeCompare(a.id));
+  realGet('st-enc-take').innerHTML=ENC.takes.map((t,i)=>'<option value="'+i+'">'+t.id.replace('kinearfit_toma_','').replace('_',' ')+' · '+t.name+'</option>').join('')+'<option value="file">Elegir archivo…</option>';
+  encSync();
+}
+function encLog(){const v=realGet('st-enc-take').value;return v==='file'?ENC.fileLog:(ENC.takes[+v]&&ENC.takes[+v].log);}
+function encSync(){realGet('st-enc-json-row').hidden=realGet('st-enc-take').value!=='file';realGet('st-enc-go').disabled=!(ENC.img&&encLog());}
+function encMsg(t){const m=realGet('st-enc-msg');m.textContent=t||'';m.hidden=!t;}
+function encReset(){['st-enc-prev','st-enc-info','st-enc-dl','st-enc-share'].forEach(id=>{realGet(id).hidden=true;});ENC.blob=null;}
+realGet('st-to-enc').addEventListener('click',async()=>{show('enc');await encSetup();});
+realGet('st-enc-take').addEventListener('change',()=>{encReset();encSync();});
+realGet('st-enc-json').addEventListener('change',async e=>{
+  ENC.fileLog=null;encMsg('');encReset();
+  const f=e.target.files[0];
+  if(f){try{const l=JSON.parse(await f.text());if(!validLog(l))throw 0;ENC.fileLog=l;}catch(x){encMsg('Ese archivo no es un registro del estudio.');}}
+  encSync();
+});
+realGet('st-enc-img').addEventListener('change',async e=>{
+  ENC.img=null;encMsg('');encReset();
+  const f=e.target.files[0];
+  if(f){
+    if(ENC.imgUrl)URL.revokeObjectURL(ENC.imgUrl);
+    ENC.imgUrl=URL.createObjectURL(f);
+    const img=new Image();img.src=ENC.imgUrl;
+    try{await img.decode();ENC.img=img;ENC.name=f.name.replace(/\.[^.]+$/,'');}catch(x){encMsg('No se pudo abrir esa imagen.');}
+  }
+  encSync();
+});
+realGet('st-enc-go').addEventListener('click',async()=>{
+  const btn=realGet('st-enc-go'),log=encLog(),img=ENC.img;
+  encMsg('');encReset();
+  if(!log.crop){encMsg('Esa toma es anterior a la grabación vertical 9:16. Usa una toma nueva.');return;}
+  const T=takeProps(log);
+  if(!T||T.eyes==null||T.hips==null||T.cx==null){encMsg('Esa toma no tiene suficientes puntos del cuerpo para medir el encuadre.');return;}
+  btn.disabled=true;btn.textContent='Detectando a la persona…';
+  try{
+    const I=await imgProps(img);
+    window.__estudio.lastCrop=null;
+    if(!I||I.eyes==null||I.cx==null||(I.hips==null&&(I.sh==null||T.sh==null))){encMsg('No se detectaron bien los ojos y los hombros en la imagen. Usa una persona de frente, de la cabeza a las rodillas.');return;}
+    const iw=img.naturalWidth,ih=img.naturalHeight,r=fitCrop(T,I,iw,ih);
+    const cv=document.createElement('canvas');cv.width=720;cv.height=1280;
+    const cx=cv.getContext('2d');cx.imageSmoothingEnabled=true;cx.imageSmoothingQuality='high';
+    cx.drawImage(img,r.x,r.y,r.w,r.h,0,0,720,1280);
+    ENC.blob=await new Promise(res=>cv.toBlob(res,'image/jpeg',0.92));
+    const prev=realGet('st-enc-prev');if(prev.src)URL.revokeObjectURL(prev.src);prev.src=URL.createObjectURL(ENC.blob);prev.hidden=false;
+    const pct=v=>Math.round(v*100)+' %';
+    const info=realGet('st-enc-info');info.classList.remove('bad');
+    let t;
+    if(r.scale>1.05){t='Ojos a '+pct(T.eyes)+' como en tu toma, pero la imagen no alcanzó: el personaje queda '+Math.round((r.scale-1)*100)+' % más grande que tú. Pide en Gemini más cuerpo, hasta media pantorrilla.';info.classList.add('bad');}
+    else t='Ojos a '+pct(T.eyes)+' y caderas a '+pct(T.hips)+' de la altura, como en tu toma.';
+    if(I.hips==null)t+=' Las caderas no se ven en la imagen: el tamaño se midió con los hombros y es menos preciso.';
+    if(r.w<400)t+=' La imagen es pequeña para el recorte y puede verse borrosa.';
+    info.textContent=t;info.hidden=false;
+    realGet('st-enc-dl').hidden=false;realGet('st-enc-share').hidden=false;
+    window.__estudio.lastCrop={T,I,r,iw,ih};
+  }catch(e){console.error('[estudio]',e);encMsg('No se pudo detectar a la persona en este celular.');}
+  finally{btn.disabled=false;btn.textContent='Encuadrar';}
+});
+const encName=()=>'kinearfit_personaje_'+stamp()+'.jpg';
+realGet('st-enc-dl').addEventListener('click',()=>{if(ENC.blob)download(ENC.blob,encName());});
+realGet('st-enc-share').addEventListener('click',()=>{if(ENC.blob)shareBlob(ENC.blob,encName());});
+
 /* ========== ARRANQUE ========== */
-window.__estudio={remuxFragmented,fixMp4,G,M,renderAt,buildEvents,resetReplay,setOffset,detectFormat,startMontar,finishTake,WC_CODECS,startRec,autoSync,runSync,exportar,hudImage};
+window.__estudio={snapHits,paintSnap,remuxFragmented,fixMp4,G,M,renderAt,buildEvents,resetReplay,setOffset,detectFormat,startMontar,finishTake,WC_CODECS,startRec,autoSync,runSync,exportar,hudImage};
 setupRecForm();
 // La app cierra su splash a los 2,3 s; despues de eso el estudio ya no compite por la pantalla.
 setTimeout(()=>{
   const ob=realGet('screen-onboarding');if(ob)ob.classList.remove('active');
   realGet('bottom-nav').style.display='none';
-  realGet('st-to-rec').disabled=false;realGet('st-to-mon').disabled=false;
+  realGet('st-to-rec').disabled=false;realGet('st-to-enc').disabled=false;realGet('st-to-mon').disabled=false;
   realGet('st-boot').textContent='';
 },2450);
 })();
