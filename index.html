@@ -3121,6 +3121,31 @@ setTimeout(function(){
 #st-enc-prev[hidden],#st-enc-info[hidden],#st-enc-json-row[hidden]{display:none}
 
 #st-panel .st-row .st-second{padding:0 8px}
+
+/* Grabar: rutina o tutorial */
+.st-seg{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:4px}
+.st-seg button{flex:1;min-height:44px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:800 15px var(--font);cursor:pointer}
+.st-seg button.on{background:var(--accent);color:#fff}
+.st-group{display:flex;flex-direction:column;gap:14px}
+.st-group[hidden],#st-mon-tnote[hidden],#st-tut-done[hidden],.st-field input[hidden]{display:none}
+#st-cue{position:fixed;left:50%;top:30vh;transform:translateX(-50%);z-index:61;width:min(84vw,360px);background:rgba(0,0,0,.66);border-radius:18px;padding:12px 16px;text-align:center;font-family:var(--font);color:#fff;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:4px}
+#st-cue[hidden]{display:none}
+#st-cue b{font-size:88px;line-height:1;font-weight:900;color:var(--accent)}
+#st-cue span{font-size:17px;font-weight:800;line-height:1.35}
+
+/* Prompts */
+.st-h3{font-size:16px;font-weight:800;color:#fff;margin-top:10px}
+.st-field input[type=text]{width:100%;min-height:46px;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:600 15px var(--font);letter-spacing:0;text-transform:none}
+.st-check{display:flex;align-items:center;gap:10px;font-size:14px;line-height:1.35;color:var(--text);cursor:pointer}
+.st-check input{width:22px;height:22px;flex:0 0 auto;accent-color:var(--accent)}
+.st-prompt{user-select:text;-webkit-user-select:text}
+
+/* Montar tutorial */
+.st-tut-stage{display:flex;justify-content:center}
+#st-tut-cv{display:block;height:min(54vh,640px);width:auto;max-width:100%;object-fit:contain;border-radius:12px;border:1px solid var(--border);background:#000;cursor:pointer}
+#st-v-tut .st-row .st-second{min-height:44px;font-size:14px}
+#st-v-tut .st-row .st-second:not(.st-grow){min-width:48px}
+.st-center{text-align:center;font-size:14px;font-weight:700;color:var(--text)}
 @media (max-width:380px){#st-panel .st-row .st-second{font-size:12px;padding:0 6px}#st-panel .st-row{gap:5px}}
 </style>
 <script data-lib="mp4-muxer@5.1.3 (MIT)">"use strict";
@@ -5017,30 +5042,62 @@ root.setAttribute('data-no-i18n','');
 root.innerHTML=`
 <section class="st-view" id="st-v-home">
   <div class="st-brand">Kinear<span>Fit</span><em>Estudio</em></div>
-  <button class="st-card" id="st-to-rec" disabled><b>Grabar</b><span>Sesión real. Descargas el video crudo y el registro.</span></button>
+  <button class="st-card" id="st-to-rec" disabled><b>Grabar</b><span>Rutina para anuncio o clip de tutorial. Descargas el video crudo y el registro.</span></button>
+  <button class="st-card" id="st-to-prm" disabled><b>Prompts</b><span>Arma el prompt de Gemini con un cuestionario y copia el de Genjutsu.</span></button>
   <button class="st-card" id="st-to-enc" disabled><b>Encuadrar personaje</b><span>Recorta la imagen de Gemini al encuadre de tu toma, antes de Genjutsu.</span></button>
-  <button class="st-card" id="st-to-mon" disabled><b>Montar</b><span>Video de Higgsfield con la capa de la app encima.</span></button>
+  <button class="st-card" id="st-to-mon" disabled><b>Montar</b><span>Anuncio: el video de Higgsfield con la capa de la app. Tutorial: un loop limpio.</span></button>
   <p class="st-note" id="st-boot">Preparando…</p>
 </section>
 <section class="st-view" id="st-v-rec" hidden>
   <div class="st-head"><button class="st-back" data-home aria-label="Volver">‹</button><h2>Grabar</h2></div>
-  <label class="st-field">Rutina<select id="st-rut"></select></label>
-  <div id="st-custom" hidden>
-    <div class="st-chips" id="st-chips"></div>
-    <p class="st-seq" id="st-seq" style="margin-top:8px"></p>
-    <button class="st-second" id="st-seq-clear" style="margin-top:8px">Borrar secuencia</button>
+  <div class="st-seg" id="st-kind" role="group" aria-label="Tipo de toma"><button data-k="rut" class="on">Rutina</button><button data-k="tut">Tutorial</button></div>
+  <div class="st-group" id="st-g-rut">
+    <label class="st-field">Rutina<select id="st-rut"></select></label>
+    <div id="st-custom" hidden>
+      <div class="st-chips" id="st-chips"></div>
+      <p class="st-seq" id="st-seq" style="margin-top:8px"></p>
+      <button class="st-second" id="st-seq-clear" style="margin-top:8px">Borrar secuencia</button>
+    </div>
+    <label class="st-field">Dificultad<select id="st-diff"></select></label>
   </div>
-  <label class="st-field">Dificultad<select id="st-diff"></select></label>
+  <div class="st-group" id="st-g-tut" hidden>
+    <label class="st-field">Movimiento y lado<select id="st-tmv"></select></label>
+    <p class="st-seq" id="st-tclip"></p>
+  </div>
   <label class="st-field">Largo de la toma<select id="st-len"></select></label>
-  <p class="st-note">La toma empieza en el 1 de la cuenta: 1 s con el óvalo y los puntos, 1 s de ¡YA! y luego la rutina. Con 6 s quedan unos 4 s de golpes. Genjutsu pide entre 4 y 30 s.</p>
+  <p class="st-note" id="st-len-note"></p>
   <p class="st-fmt" id="st-fmt">Formato: comprobando…</p>
-  <ol class="st-steps">
-    <li>Ubícate como siempre, con la cara justo debajo del reloj.</li>
-    <li>La grabación arranca en el 1 de la cuenta y se corta sola.</li>
-    <li>Quédate en guardia hasta el ¡YA! y entrena.</li>
-    <li>Si un golpe no cuenta, repite la toma.</li>
-  </ol>
+  <ol class="st-steps" id="st-steps"></ol>
   <button class="st-primary" id="st-rec-go">Empezar</button>
+</section>
+<section class="st-view" id="st-v-prm" hidden>
+  <div class="st-head"><button class="st-back" data-home aria-label="Volver">‹</button><h2>Prompts</h2></div>
+  <h3 class="st-h3">Gemini · personaje</h3>
+  <p class="st-note">A Gemini súbele solo la foto del lugar (imagen 1). No subas tu foto: copiaría tu cara.</p>
+  <div class="st-group" id="st-prm-fields"></div>
+  <button class="st-second" id="st-prm-rand">Aleatorio</button>
+  <div class="st-prompt" id="st-prm-text"></div>
+  <button class="st-primary" id="st-prm-copy">Copiar prompt de Gemini</button>
+  <p class="st-note" id="st-prm-fix-l"></p>
+  <div class="st-prompt" id="st-prm-fix"></div>
+  <button class="st-second" id="st-prm-fix-copy">Copiar corrección</button>
+  <h3 class="st-h3">Genjutsu · video</h3>
+  <p class="st-note">Sube el video de la toma y la imagen encuadrada.</p>
+  <div class="st-prompt" id="st-gj-text"></div>
+  <label class="st-check"><input type="checkbox" id="st-gj-punch"> Golpes idénticos (rectos a la altura de la cara)</label>
+  <button class="st-primary" id="st-gj-copy">Copiar prompt de Genjutsu</button>
+</section>
+<section class="st-view" id="st-v-tut" hidden>
+  <div class="st-head"><button class="st-back" id="st-tut-x" aria-label="Salir">‹</button><h2 id="st-tut-h">Tutorial</h2></div>
+  <div class="st-tut-stage"><canvas id="st-tut-cv" width="360" height="640" aria-label="Vista previa del loop. Toca para pausar."></canvas></div>
+  <div class="st-row"><button class="st-second" id="st-tut-prev" aria-label="Anterior">‹</button><output class="st-grow st-center" id="st-tut-rep"></output><button class="st-second" id="st-tut-next" aria-label="Siguiente">›</button></div>
+  <p class="st-fmt" id="st-tut-info"></p>
+  <div class="st-row"><span class="st-lbl">Inicio</span><button class="st-second" id="st-tut-am" aria-label="Inicio un cuadro antes">−1</button><button class="st-second" id="st-tut-ap" aria-label="Inicio un cuadro después">+1</button><span class="st-lbl" style="margin-left:auto">Fin</span><button class="st-second" id="st-tut-bm" aria-label="Fin un cuadro antes">−1</button><button class="st-second" id="st-tut-bp" aria-label="Fin un cuadro después">+1</button></div>
+  <div class="st-row"><button class="st-second st-grow" id="st-tut-fade"></button></div>
+  <button class="st-primary" id="st-tut-exp">Exportar loop</button>
+  <button class="st-second" id="st-tut-share" disabled>Compartir</button>
+  <p class="st-fmt" id="st-tut-done" hidden></p>
+  <p class="st-note" id="st-tut-note"></p>
 </section>
 <section class="st-view" id="st-v-done" hidden>
   <div class="st-head"><h2>Toma lista</h2></div>
@@ -5072,6 +5129,7 @@ root.innerHTML=`
   <label class="st-field">Video de Higgsfield<input type="file" id="st-file-v" accept="video/*"></label>
   <label class="st-field">Registro de la toma<select id="st-take"></select></label>
   <label class="st-field" id="st-json-row">Archivo de registro<input type="file" id="st-file-j" accept="application/json,.json,text/plain"></label>
+  <p class="st-note" id="st-mon-tnote" hidden>Toma de tutorial: el video puede ser el de Higgsfield o tu toma directa. Se arma un loop limpio, sin óvalo, esferas ni HUD.</p>
   <p class="st-fmt bad" id="st-mon-msg" hidden></p>
   <button class="st-primary" id="st-mon-go" disabled>Continuar</button>
 </section>`;
@@ -5079,6 +5137,7 @@ document.body.appendChild(root);
 const shell=document.createElement('div');
 shell.innerHTML=`
 <div id="st-rec" data-no-i18n hidden><i></i><span id="st-rec-t">REC</span></div>
+<div id="st-cue" data-no-i18n hidden></div>
 <div id="st-panel" data-no-i18n hidden>
   <div class="st-warn" id="st-warn" hidden></div>
   <div class="st-info" id="st-info" hidden></div>
@@ -5093,7 +5152,7 @@ shell.innerHTML=`
 <div id="st-progress" data-no-i18n hidden><b id="st-prog-t"></b><span id="st-prog-s"></span><button class="st-second" id="st-prog-x">Cancelar</button></div>`;
 while(shell.firstChild)document.body.appendChild(shell.firstChild);
 
-const VIEWS=['home','rec','done','mon','enc'];
+const VIEWS=['home','rec','done','mon','enc','prm','tut'];
 function show(v){VIEWS.forEach(n=>{realGet('st-v-'+n).hidden=(n!==v);});root.hidden=false;root.scrollTop=0;}
 function hideRoot(){root.hidden=true;}
 root.querySelectorAll('[data-home]').forEach(b=>b.addEventListener('click',()=>show('home')));
@@ -5123,7 +5182,7 @@ function goFull(){
 const DB={
   open(){return new Promise((res,rej)=>{const r=indexedDB.open('kf_estudio',1);r.onupgradeneeded=()=>r.result.createObjectStore('takes',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});},
   async all(){try{const db=await this.open();return await new Promise(res=>{const q=db.transaction('takes').objectStore('takes').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([]);});}catch(e){return [];}},
-  async put(t){try{const db=await this.open();const os=db.transaction('takes','readwrite').objectStore('takes');os.put(t);const all=await this.all();all.sort((a,b)=>b.id.localeCompare(a.id));if(all.length>15){const d=db.transaction('takes','readwrite').objectStore('takes');all.slice(15).forEach(x=>d.delete(x.id));}}catch(e){}}
+  async put(t){try{const db=await this.open();const os=db.transaction('takes','readwrite').objectStore('takes');os.put(t);const all=await this.all();all.sort((a,b)=>b.id.localeCompare(a.id));if(all.length>40){const d=db.transaction('takes','readwrite').objectStore('takes');all.slice(40).forEach(x=>d.delete(x.id));}}catch(e){}}
 };
 
 /* ========== MODO GRABAR ========== */
@@ -5305,6 +5364,8 @@ async function finishTake(){
   clearTimeout(G.timer);clearInterval(G.tick);
   clearInterval(sessTimer);clearInterval(breakTimer);hideCenterOverlay();
   S.sess.active=false;arRunning=false;
+  ['tutorial-banner','tut-exit'].forEach(id=>{const e=realGet(id);if(e)e.style.display='none';});
+  realGet('st-cue').hidden=true;
   const v=realGet('cam-video'),c=realGet('ar-canvas');
   const vw=v.videoWidth,vh=v.videoHeight;
   let blob=null;
@@ -5316,7 +5377,7 @@ async function finishTake(){
   if(G.goT==null)G.goT=1000;
   if(G.sessionStart==null)G.sessionStart=G.goT+1000;
   const cfg=G.cfg;
-  const log={v:1,app:APP,created:new Date().toISOString(),
+  const log={v:1,app:APP,mode:G.tut?'tutorial':'rutina',created:new Date().toISOString(),
     video:{w:OUT_W,h:OUT_H,mime:blob?blob.type:'',format:G.fmt.label,ms:durMs},
     camera:{w:vw,h:vh},crop:G.crop,
     canvas:{w:c.width,h:c.height,dpr:window.devicePixelRatio||1},
@@ -5324,11 +5385,16 @@ async function finishTake(){
     diff:cfg.diff,dom:S.user.dom||'right',lang:document.documentElement.lang||null,
     guide:G.guide,goT:G.goT,sessionStart:G.sessionStart,
     fps:r3(G.frames.length/(durMs/1000)),frames:G.frames,hits:G.hits};
+  if(G.tut){log.move=cfg.mk;log.clip=cfg.key;}
   G.blob=blob;G.log=log;
   const base='kinearfit_toma_'+stamp();
   G.base=base;
-  await DB.put({id:base,name:cfg.name+' · '+(durMs/1000).toFixed(1)+' s · '+G.hits.length+' golpes',log});
-  const rows=[['Rutina',cfg.name],['Duración',fmtS(durMs/1000)],['Golpes reales',String(G.hits.length)],['Video',OUT_W+'×'+OUT_H+' (9:16)'],['Cámara',vw+'×'+vh],['Formato',G.fmt.label],['Detección',log.fps.toFixed(1).replace('.',',')+' por segundo']];
+  const secs=(durMs/1000).toFixed(1)+' s';
+  const guard=G.tut&&cfg.mk==='GUARD';
+  await DB.put({id:base,name:G.tut?('Tutorial '+cfg.title+' · '+secs+(guard?'':' · '+G.hits.length+' rep.')):(cfg.name+' · '+secs+' · '+G.hits.length+' golpes'),log});
+  const rows=(G.tut?[['Tutorial',cfg.title],['Archivo',cfg.file],['Duración',fmtS(durMs/1000)]].concat(guard?[]:[['Repeticiones contadas',String(G.hits.length)]])
+    :[['Rutina',cfg.name],['Duración',fmtS(durMs/1000)],['Golpes reales',String(G.hits.length)]])
+    .concat([['Video',OUT_W+'×'+OUT_H+' (9:16)'],['Cámara',vw+'×'+vh],['Formato',G.fmt.label],['Detección',log.fps.toFixed(1).replace('.',',')+' por segundo']]);
   realGet('st-sum').innerHTML=rows.map(r=>'<dt>'+r[0]+'</dt><dd>'+String(r[1]).replace(/</g,'&lt;')+'</dd>').join('');
   const warn=realGet('st-done-warn');
   const msg=[];
@@ -5343,16 +5409,7 @@ function enterGrabar(cfg){
   G.cfg=cfg;G.maxMs=cfg.seconds*1000+300;   // un margen corto para que el clon alcance los segundos elegidos
   if(cfg.custom){RUTINAS.push({id:'estudio_custom',name:cfg.name,seq:cfg.seq.slice(),level:cfg.level,fact:''});cfg.idx=RUTINAS.length-1;}
   S.selCombo=cfg.idx;
-  const _lm=loadMoveNet;
-  loadMoveNet=async function(){
-    await _lm();
-    if(detector){const o=detector.estimatePoses.bind(detector);detector.estimatePoses=function(a,b,c2){G.poseT=performance.now();return o(a,b,c2);};}
-  };
-  const _push=pushKptHistory;
-  pushKptHistory=function(kpts){
-    _push(kpts);
-    if(G.recording&&G.poseT>=G.t0)G.frames.push({t:Math.round(G.poseT-G.t0),k:kpts.map(k=>[r4(toCropX(k.x)),r4(toCropY(k.y)),r3(k.score)])});
-  };
+  wrapCapture();
   const _hit=doHit;
   doHit=function(mk,pos){
     if(G.recording){
@@ -5374,6 +5431,92 @@ function enterGrabar(cfg){
   hideRoot();
   startSession('combos',cfg.diff).then(()=>{if(G.recording&&G.sessionStart==null)G.sessionStart=relT();});
 }
+// Lo comun a rutina y tutorial: los puntos del cuerpo de cada cuadro, con su hora en la toma.
+function wrapCapture(){
+  const _lm=loadMoveNet;
+  loadMoveNet=async function(){
+    await _lm();
+    if(detector){const o=detector.estimatePoses.bind(detector);detector.estimatePoses=function(a,b,c2){G.poseT=performance.now();return o(a,b,c2);};}
+  };
+  const _push=pushKptHistory;
+  pushKptHistory=function(kpts){
+    _push(kpts);
+    if(G.recording&&G.poseT>=G.t0)G.frames.push({t:Math.round(G.poseT-G.t0),k:kpts.map(k=>[r4(toCropX(k.x)),r4(toCropY(k.y)),r3(k.score)])});
+  };
+}
+
+/* ---- Toma de tutorial: el tutorial de la app (esfera y contador de aciertos como guia), pero sin
+   ovalo: la persona se aleja hasta verse de cuerpo entero, suena 3-2-1 y graba. El video sale
+   limpio como siempre (camara cruda); la esfera solo la ve quien graba. ---- */
+function beep(f,d){
+  try{
+    if(!audioCtx)initAudio();
+    const c=audioCtx;if(!c)return;if(c.state==='suspended')c.resume();
+    const o=c.createOscillator(),g=c.createGain(),t=c.currentTime,len=d||0.15;
+    o.type='sine';o.frequency.value=f;
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.3,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+len);
+    o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+len+0.02);
+  }catch(e){}
+}
+function cueSay(big,sub){
+  const el=realGet('st-cue'),html=(big!==''&&big!=null?'<b>'+big+'</b>':'')+(sub?'<span>'+sub+'</span>':'');
+  if(el.innerHTML!==html)el.innerHTML=html;
+  el.hidden=!html;
+}
+function tutCue(){
+  const t0=Date.now();let since=0;
+  cueSay('','Aléjate hasta verte de cuerpo entero, de la cabeza a los pies');
+  const poll=setInterval(()=>{
+    if(G.ending||G.recording){clearInterval(poll);return;}
+    if(!S.sess||!S.sess.active)return;
+    const k=currKpts,ok=i=>!!(k&&k[i]&&k[i].score>=0.3);
+    const body=ok(KP.NOSE)&&ok(KP.LS)&&ok(KP.RS)&&(ok(KP.LH)||ok(KP.RH))&&(ok(KP.LA)||ok(KP.RA));
+    if(body){if(!since)since=Date.now();}else since=0;
+    // A los 20 s arranca igual: puede que la camara no alcance a ver los pies.
+    if((since&&Date.now()-since>=1000)||Date.now()-t0>=20000){clearInterval(poll);tutCount();return;}
+    cueSay('',body?'Quédate así':(ok(KP.NOSE)?'Aléjate: que se vean tus pies':'Ponte frente a la cámara'));
+  },100);
+}
+function tutCount(){
+  let n=3;cueSay(n,'En guardia');beep(660);
+  const iv=setInterval(()=>{
+    if(G.ending){clearInterval(iv);return;}
+    n--;
+    if(n>0){cueSay(n,'En guardia');beep(660);return;}
+    clearInterval(iv);beep(990,0.3);
+    startRec();G.goT=0;G.sessionStart=0;
+    cueSay('¡YA!','');setTimeout(()=>{if(G.recording)cueSay('','');},700);
+  },1000);
+}
+function enterGrabarTutorial(cfg){
+  G.cfg=cfg;G.tut=true;G.maxMs=cfg.seconds*1000+300;
+  S.user.dom=cfg.dom;applyDom(cfg.dom);
+  wrapCapture();
+  // Cada acierto del tutorial queda en el registro, con la extremidad que golpeo.
+  const _tp=tutorialProcess;
+  tutorialProcess=function(){
+    const n=S.tutorial.count;_tp();
+    if(!G.recording||S.tutorial.count<=n)return;
+    const mk=S.tutorial.mk,mv=MOVES[mk],c=realGet('ar-canvas'),tp=getTargetPos(mk),nx=tp.x/c.width,ny=tp.y/c.height;
+    let kp=mv.kp;
+    if(mv.kpAlt!=null&&currKpts){const d=i=>{const k=currKpts[i];return k&&k.score>=0.2?Math.hypot(k.x-nx,k.y-ny):9;};if(d(mv.kpAlt)<d(mv.kp))kp=mv.kpAlt;}
+    G.hits.push({t:Math.round(G.poseT-G.t0),f:G.frames.length-1,mv:mk,x:r4(toCropX(nx)),y:r4(toCropY(ny)),kp});
+  };
+  // La guardia no esta en la lista de movimientos del tutorial: solo su letrero, sin esfera.
+  const _it=initTutorial;
+  initTutorial=function(){
+    if(S.tutorial.mk!=='GUARD'){_it();return;}
+    const b=realGet('tutorial-banner');
+    b.innerHTML='<div style="font-family:var(--font);font-weight:900;font-size:26px;color:#00D4FF;text-shadow:0 0 16px #00D4FF">GUARDIA</div>'+
+      '<div style="font-family:var(--font);font-weight:600;color:rgba(255,255,255,.8);font-size:14px;margin-top:4px;max-width:300px;margin-left:auto;margin-right:auto;line-height:1.4">'+moveDesc(GUARD_MOVE)+'</div>';
+    b.style.display='block';realGet('tut-exit').style.display='block';
+  };
+  guideTutorial=function(){guideOn=false;guideFadeAt=0;tutCue();};
+  endSession=function(){finishTake();};
+  hideRoot();
+  S.tutorial={mk:cfg.mk,count:0,lastHit:0};
+  startSession('tutorial','easy');
+}
 
 /* ---- Pantalla de configuracion ---- */
 let customSeq=[];
@@ -5391,8 +5534,48 @@ function setupRecForm(){
   realGet('st-seq-clear').addEventListener('click',()=>{customSeq=[];paint();});
   sel.addEventListener('change',()=>{realGet('st-custom').hidden=sel.value!=='custom';paint();});
   paint();
+  // Tutorial: cada movimiento en version diestro y zurdo, cada una con su propio clip (sin espejo).
+  const tm=realGet('st-tmv');
+  tm.innerHTML=[GUARD_MOVE].concat(TUTORIAL_MOVES).map(m=>['right','left'].map(d=>'<option value="'+m.mk+'|'+d+'">'+tutLabel(m.mk,d)+'</option>').join('')).join('');
+  tm.addEventListener('change',paintKind);
+  realGet('st-kind').addEventListener('click',e=>{const k=e.target&&e.target.dataset&&e.target.dataset.k;if(k){REC_KIND=k;paintKind();}});
+  paintKind();
 }
-function refreshRecBtn(){realGet('st-rec-go').disabled=!G.fmt||(realGet('st-rut').value==='custom'&&!customSeq.length);}
+let REC_KIND='rut';
+const moveTitle=mk=>mk==='GUARD'?GUARD_MOVE.title:((TUTORIAL_MOVES.find(m=>m.mk===mk)||{}).title||mk);
+// Nombre de cada clip nuevo: uno por movimiento y por lado, sin compartir archivo.
+const CLIP_NAME={GUARD:'guardia',JAB:'jab',CROSS:'cross',HOOK_L:'gancho_adelantado',HOOK_R:'gancho_poder',HOOK_BODY_L:'gancho_cuerpo_adelantado',HOOK_BODY_R:'gancho_cuerpo_poder',
+  UPPER:'uppercut',KICKF:'patada_frontal',KICKS:'patada_baja',KICKS_2:'patada_baja_otra',ELBOW:'codazo',KNEE:'rodillazo'};
+const sideWord=d=>d==='left'?'zurdo':'diestro';
+const clipFile=(mk,d)=>'tutorial_'+(CLIP_NAME[mk]||mk.toLowerCase())+'_'+sideWord(d)+'.mp4';
+// Con que extremidad se hace, segun el lado (lo mismo que la app le pide a un diestro o a un zurdo).
+function limbOf(mk,d){
+  if(mk==='GUARD')return 'pierna '+(d==='left'?'derecha':'izquierda')+' adelante';
+  const mv=MOVES[mk];if(!mv)return '';
+  let kp;
+  if(mv.kpAlt!=null)kp=d==='left'?mv.kpAlt:mv.kp;     // codo y rodilla: el de atras (derecho en diestro)
+  else{applyDom(d);kp=MOVES[mk].kp;applyDom(S.user.dom||'right');}
+  const part=kp===KP.LELB||kp===KP.RELB?'brazo':(kp>=KP.LK?'pierna':'mano');
+  return part+' '+(kp%2===1?'izquierda':'derecha').replace(/a$/,part==='brazo'?'o':'a');
+}
+const tutLabel=(mk,d)=>moveTitle(mk)+' · '+sideWord(d)+' ('+limbOf(mk,d)+')';
+const STEPS_RUT=['Ubícate como siempre, con la cara justo debajo del reloj.','La grabación arranca en el 1 de la cuenta y se corta sola.','Quédate en guardia hasta el ¡YA! y entrena.','Si un golpe no cuenta, repite la toma.'];
+function paintKind(){
+  const tut=REC_KIND==='tut',[mk,dom]=realGet('st-tmv').value.split('|'),guard=mk==='GUARD';
+  realGet('st-kind').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.k===REC_KIND));
+  realGet('st-g-rut').hidden=tut;realGet('st-g-tut').hidden=!tut;
+  realGet('st-tclip').textContent='Archivo: '+clipFile(mk,dom);
+  realGet('st-len-note').textContent=tut
+    ?'Graba cuando te ve de cuerpo entero, después de un 3-2-1 con pitidos. En 6 s caben 3 o 4 repeticiones; en Montar se elige la mejor y sale un loop de 1 a 2 s.'
+    :'La toma empieza en el 1 de la cuenta: 1 s con el óvalo y los puntos, 1 s de ¡YA! y luego la rutina. Con 6 s quedan unos 4 s de golpes. Genjutsu pide entre 4 y 30 s.';
+  const steps=tut?['Aléjate hasta que se vea el cuerpo entero, de la cabeza a los pies, con fondo despejado y buena luz.',
+    'Cuando te detecta suena 3-2-1 y arranca la grabación (REC arriba).',
+    guard?'Quédate en guardia ('+limbOf(mk,dom)+') con un rebote suave, sin golpear.':'Haz 3 o 4 repeticiones con '+(/^brazo/.test(limbOf(mk,dom))?'el ':'la ')+limbOf(mk,dom)+', a ritmo de enseñanza: desde la guardia, el golpe completo y de vuelta a la guardia, con una pausa corta.',
+    'El video sale limpio: la esfera y el contador solo los ves tú.']:STEPS_RUT;
+  realGet('st-steps').innerHTML=steps.map(s=>'<li>'+s+'</li>').join('');
+  refreshRecBtn();
+}
+function refreshRecBtn(){realGet('st-rec-go').disabled=!G.fmt||(REC_KIND==='rut'&&realGet('st-rut').value==='custom'&&!customSeq.length);}
 
 realGet('st-to-rec').addEventListener('click',async()=>{
   show('rec');
@@ -5403,6 +5586,11 @@ realGet('st-to-rec').addEventListener('click',async()=>{
   refreshRecBtn();
 });
 realGet('st-rec-go').addEventListener('click',()=>{
+  if(REC_KIND==='tut'){
+    const [mk,dom]=realGet('st-tmv').value.split('|'),title=moveTitle(mk)+' · '+sideWord(dom);
+    enterGrabarTutorial({tutorial:true,mk,key:CLIP_NAME[mk]||mk.toLowerCase(),file:clipFile(mk,dom),title,idx:-1,id:'tutorial_'+mk,name:'Tutorial '+title,seq:[mk],level:'',diff:'easy',seconds:+realGet('st-len').value,dom});
+    return;
+  }
   const v=realGet('st-rut').value,custom=v==='custom';
   const r=custom?null:RUTINAS[+v];
   enterGrabar({custom,idx:custom?-1:+v,id:custom?'estudio_custom':r.id,name:custom?customSeq.map(k=>MOVES[k].label).join('-'):r.name,seq:custom?customSeq.slice():r.seq.slice(),level:custom?'Intermedio':r.level,diff:realGet('st-diff').value,seconds:+realGet('st-len').value});
@@ -5411,7 +5599,17 @@ realGet('st-dl-v').addEventListener('click',()=>download(G.blob,G.base+'.'+G.fmt
 realGet('st-share-v').addEventListener('click',()=>{if(G.blob)shareBlob(G.blob,G.base+'.'+G.fmt.ext);});
 realGet('st-dl-j').addEventListener('click',()=>download(new Blob([JSON.stringify(G.log)],{type:'application/json'}),G.base+'.json'));
 realGet('st-prompt').textContent=PROMPT;
-realGet('st-copy').addEventListener('click',async e=>{try{await navigator.clipboard.writeText(PROMPT);e.target.textContent='Copiado';}catch(x){e.target.textContent='No se pudo copiar';}});
+// Copiar con respaldo: si el portapapeles moderno no esta disponible, el metodo clasico.
+async function copyText(text,btn){
+  const label=btn.dataset.label||(btn.dataset.label=btn.textContent);
+  let ok=false;
+  try{await navigator.clipboard.writeText(text);ok=true;}catch(e){
+    try{const ta=document.createElement('textarea');ta.value=text;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.select();ok=document.execCommand('copy');ta.remove();}catch(x){}
+  }
+  btn.textContent=ok?'Copiado ✓':'No se pudo copiar';
+  clearTimeout(btn._t);btn._t=setTimeout(()=>{btn.textContent=label;},1800);
+}
+realGet('st-copy').addEventListener('click',e=>copyText(PROMPT,e.currentTarget));
 realGet('st-again').addEventListener('click',()=>location.reload());
 
 /* ========== MODO MONTAR ========== */
@@ -5424,7 +5622,12 @@ async function setupMontarForm(){
   realGet('st-take').innerHTML=M.takes.map((t,i)=>'<option value="'+i+'">'+t.id.replace('kinearfit_toma_','').replace('_',' ')+' · '+t.name+'</option>').join('')+'<option value="file">Elegir archivo…</option>';
   syncTakeRow();
 }
-function syncTakeRow(){realGet('st-json-row').hidden=realGet('st-take').value!=='file';refreshMonBtn();}
+function monLog(){const v=realGet('st-take').value;return v==='file'?M.fileLog:(M.takes[+v]&&M.takes[+v].log);}
+function syncTakeRow(){
+  realGet('st-json-row').hidden=realGet('st-take').value!=='file';
+  const l=monLog();realGet('st-mon-tnote').hidden=!(l&&l.mode==='tutorial');
+  refreshMonBtn();
+}
 function refreshMonBtn(){
   const v=realGet('st-take').value;
   realGet('st-mon-go').disabled=!(M.file&&(v==='file'?M.fileLog:M.takes[+v]));
@@ -5439,14 +5642,17 @@ realGet('st-file-j').addEventListener('change',async e=>{
   M.fileLog=null;monMsg('');
   const f=e.target.files[0];if(!f){refreshMonBtn();return;}
   try{const l=JSON.parse(await f.text());if(!validLog(l))throw 0;M.fileLog=l;}catch(x){monMsg('Ese archivo no es un registro del estudio.');}
-  refreshMonBtn();
+  syncTakeRow();
 });
 realGet('st-mon-go').addEventListener('click',async()=>{
+  const log=monLog();
+  realGet('st-mon-go').disabled=true;
+  if(log.mode==='tutorial'){
+    try{await startTutorialEditor(M.file,log);}catch(e){console.error('[estudio]',e);realGet('st-progress').hidden=true;show('mon');monMsg('No se pudo abrir ese video en este navegador.');realGet('st-mon-go').disabled=false;}
+    return;
+  }
   // Pantalla completa desde aqui: el aviso de Chrome sale ahora y no en la toma.
   goFull();
-  const v=realGet('st-take').value;
-  const log=v==='file'?M.fileLog:M.takes[+v].log;
-  realGet('st-mon-go').disabled=true;
   try{await startMontar(M.file,log);}catch(e){console.error('[estudio]',e);monMsg('No se pudo abrir ese video en este navegador.');realGet('st-mon-go').disabled=false;}
 });
 
@@ -5960,7 +6166,7 @@ realGet('st-snd').addEventListener('click',e=>{
   if(M.sound){initAudio();if(audioCtx&&audioCtx.resume)audioCtx.resume();}
   e.target.textContent='Sonido: '+(M.sound?'sí':'no');
 });
-realGet('st-prog-x').addEventListener('click',()=>{M.cancel=true;});
+realGet('st-prog-x').addEventListener('click',()=>{M.cancel=true;TU.cancel=true;});
 realGet('st-src').addEventListener('click',()=>{
   if(!M.redet){redetect();return;}
   M.kpSource=M.kpSource==='redet'?'log':'redet';
@@ -6078,14 +6284,415 @@ const encName=()=>'kinearfit_personaje_'+stamp()+'.jpg';
 realGet('st-enc-dl').addEventListener('click',()=>{if(ENC.blob)download(ENC.blob,encName());});
 realGet('st-enc-share').addEventListener('click',()=>{if(ENC.blob)shareBlob(ENC.blob,encName());});
 
+/* ========== MONTAR TUTORIAL: loop limpio para la pantalla de movimiento de la app ==========
+   Sin capa de la app. Detecta el cuerpo en cada cuadro, encuentra las repeticiones y, en cada una,
+   el inicio y el fin con la postura mas parecida (la costura del loop). Exporta 608x1080 sin audio,
+   tal como se grabo (sin espejo): cada lado tiene su propio clip. */
+const TU={v:null,log:null,file:'',fps:30,N:0,vw:0,vh:0,K:[],KS:[],act:[],thumbs:[],bm:new Map(),cands:[],ci:0,best:0,reps:0,a:0,b:0,
+  det:false,cancel:false,fade:true,raf:0,t0:0,paused:false,pi:0,blob:null,name:null,tok:0,busy:false,pw:360,ph:640};
+const TU_W=608,TU_H=1080,TU_FADE=3;
+const TU_KP=[0,5,6,7,8,9,10,11,12,13,14,15,16];
+const TU_LEGS=['KICKF','KICKS','KICKS_2','KNEE'];
+const seekV=(v,t)=>new Promise(r=>{v.addEventListener('seeked',r,{once:true});v.currentTime=t;});
+
+// Cuadros por segundo del MP4 (cuenta de cuadros / duracion de la pista de video).
+function mp4Fps(buf){
+  try{
+    const u8=new Uint8Array(buf),dv=new DataView(buf);
+    const boxes=(s,e)=>{const out=[];let i=s;while(i+8<=e){let sz=dv.getUint32(i),h=8;const t=String.fromCharCode(u8[i+4],u8[i+5],u8[i+6],u8[i+7]);
+      if(sz===1){sz=Number(dv.getBigUint64(i+8));h=16;}else if(sz===0)sz=e-i;if(sz<h||i+sz>e)break;out.push({t,s:i,h:i+h,e:i+sz});i+=sz;}return out;};
+    const find=(l,t)=>l.find(b=>b.t===t);
+    const moov=find(boxes(0,u8.length),'moov');if(!moov)return null;
+    for(const trak of boxes(moov.h,moov.e).filter(b=>b.t==='trak')){
+      const mdia=find(boxes(trak.h,trak.e),'mdia');if(!mdia)continue;
+      const md=boxes(mdia.h,mdia.e),hdlr=find(md,'hdlr');
+      if(!hdlr||String.fromCharCode(u8[hdlr.h+8],u8[hdlr.h+9],u8[hdlr.h+10],u8[hdlr.h+11])!=='vide')continue;
+      const mdhd=find(md,'mdhd'),ts=dv.getUint32(mdhd.h+(u8[mdhd.h]===1?20:12));
+      const minf=find(md,'minf'),stbl=minf&&find(boxes(minf.h,minf.e),'stbl'),stts=stbl&&find(boxes(stbl.h,stbl.e),'stts');
+      if(!stts)return null;
+      const n=dv.getUint32(stts.h+4);let cnt=0,dur=0;
+      for(let i=0;i<n;i++){const c=dv.getUint32(stts.h+8+i*8);cnt+=c;dur+=c*dv.getUint32(stts.h+12+i*8);}
+      return cnt&&dur?cnt/(dur/ts):null;
+    }
+  }catch(e){console.error('[estudio] fps',e);}
+  return null;
+}
+function snapFps(f){
+  if(!f||!isFinite(f))return 30;
+  if(f>31)return 30;                       // 60 cuadros: se toma uno de cada dos
+  for(const c of [24,25,30])if(Math.abs(f-c)/c<0.03)return c;
+  return Math.max(10,Math.round(f));
+}
+// El video llena el cuadro 9:16 (recorte centrado si la proporcion no coincide).
+function drawCover(ctx,v,W,H){
+  const sw=v.videoWidth,sh=v.videoHeight,k=Math.max(W/sw,H/sh),dw=sw*k,dh=sh*k;
+  ctx.drawImage(v,(W-dw)/2,(H-dh)/2,dw,dh);
+}
+
+async function startTutorialEditor(file,log){
+  Object.assign(TU,{log,file:clipFile(log.move,log.dom||'right'),cancel:false,blob:null,fade:true,paused:false});
+  TU.fps=snapFps(mp4Fps(await file.arrayBuffer()));
+  const v=document.createElement('video');
+  v.muted=true;v.playsInline=true;v.preload='auto';
+  v.style.cssText='position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+  document.body.appendChild(v);
+  await new Promise((res,rej)=>{v.onloadeddata=res;v.onerror=()=>rej(new Error('video'));v.src=URL.createObjectURL(file);});
+  TU.v=v;TU.vw=v.videoWidth;TU.vh=v.videoHeight;
+  TU.N=Math.max(2,Math.floor(v.duration*TU.fps+1e-6));
+  realGet('st-tut-h').textContent=moveTitle(log.move)+' · '+sideWord(log.dom);
+  realGet('st-tut-note').textContent='Sale como '+TU.file+': '+TU_W+'×'+TU_H+', sin audio y tal como lo grabaste, sin espejo. Toca la vista previa para pausar.';
+  show('tut');
+  await tutDetect();
+  tutAnalyze();
+  tutSelect(TU.best);
+  tutPlay();
+  window.__estudio.tutReady=true;
+}
+async function tutDetect(){
+  const v=TU.v,N=TU.N;
+  progress('Analizando el video','Saltar detección');
+  realGet('st-prog-s').textContent='Cargando el modelo…';
+  let det=true;
+  try{if(!detector)await loadMoveNet();if(!detector)det=false;else if(detector.reset)detector.reset();}catch(e){console.error('[estudio]',e);det=false;}
+  const cv=document.createElement('canvas');cv.width=TU.pw;cv.height=TU.ph;
+  const cx=cv.getContext('2d');cx.imageSmoothingEnabled=true;cx.imageSmoothingQuality='high';
+  TU.K=new Array(N).fill(null);TU.thumbs=new Array(N).fill(null);
+  for(let i=0;i<N;i++){
+    const t=(i+0.5)/TU.fps;
+    await seekV(v,t);
+    // Miniatura para la vista previa: el loop se ve sin saltos aunque el celular tarde en buscar.
+    drawCover(cx,v,TU.pw,TU.ph);
+    TU.thumbs[i]=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.85));
+    if(det&&!TU.cancel){
+      try{
+        const ps=await detector.estimatePoses(v,undefined,t*1000);
+        if(ps.length&&ps[0].keypoints)TU.K[i]=ps[0].keypoints.map(k=>({X:k.x/TU.vh,Y:k.y/TU.vh,s:k.score||0}));
+      }catch(e){console.error('[estudio]',e);det=false;}
+    }
+    realGet('st-prog-s').textContent=(i+1)+' de '+N+' cuadros'+(det&&!TU.cancel?'':' (sin detección)');
+  }
+  TU.det=det&&!TU.cancel&&TU.K.filter(Boolean).length>=N*0.5;
+  realGet('st-progress').hidden=true;
+}
+// Puntos suavizados con sus vecinos (MoveNet tiembla un poco de cuadro a cuadro).
+function tutSmooth(){
+  const K=TU.K;
+  TU.KS=K.map((F,i)=>F&&F.map((p,q)=>{
+    if(p.s<.3)return p;
+    let x=p.X,y=p.Y,n=1;
+    for(const j of [i-1,i+1]){const P=K[j]&&K[j][q];if(P&&P.s>=.3){x+=P.X;y+=P.Y;n++;}}
+    return {X:x/n,Y:y/n,s:p.s};
+  }));
+}
+// Distancia entre dos posturas, en fracciones de la altura del cuadro (posicion absoluta: un salto
+// de lugar tambien se nota en el loop).
+function tutDist(i,j){
+  const A=TU.KS[i],B=TU.KS[j];if(!A||!B)return Infinity;
+  let s=0,n=0;
+  for(const q of TU_KP){const a=A[q],b=B[q];if(a.s<.3||b.s<.3)continue;s+=Math.hypot(a.X-b.X,a.Y-b.Y);n++;}
+  return n>=6?s/n:Infinity;
+}
+// Costura del loop [a,b): el cuadro b (el que vendria despues del ultimo) contra el a, con dos
+// cuadros a cada lado para que tambien coincida el movimiento, no solo la postura.
+function tutSeam(a,b){
+  let s=0,n=0;
+  for(let j=-2;j<=2;j++){const i1=a+j,i2=b+j;if(i1<0||i2<0||i1>=TU.N||i2>=TU.N)continue;const d=tutDist(i1,i2);if(d<Infinity){s+=d;n++;}}
+  return n>=3?s/n:Infinity;
+}
+function tutAnalyze(){
+  const mk=TU.log.move,N=TU.N;
+  TU.act=new Array(N).fill(0);
+  if(TU.det){
+    tutSmooth();
+    // Actividad: cuanto se alejan munecas y codos (o rodillas y tobillos) de su lugar habitual.
+    const idx=TU_LEGS.includes(mk)?[13,14,15,16]:[7,8,9,10],med={};
+    for(const q of idx){
+      const xs=[],ys=[];TU.KS.forEach(F=>{if(F&&F[q].s>=.3){xs.push(F[q].X);ys.push(F[q].Y);}});
+      med[q]=xs.length>=5?{X:median(xs),Y:median(ys)}:null;
+    }
+    const raw=TU.KS.map(F=>{if(!F)return 0;let m=0;for(const q of idx){const p=F[q],c=med[q];if(c&&p.s>=.3)m=Math.max(m,Math.hypot(p.X-c.X,p.Y-c.Y));}return m;});
+    TU.act=raw.map((x,i)=>(x+(i?raw[i-1]:x)+(i<N-1?raw[i+1]:x))/3);
+  }
+  const r=tutCands();
+  TU.cands=r.cands;TU.best=r.best;TU.reps=r.reps;
+}
+function tutPeaks(){
+  const a=TU.act,N=TU.N,mx=Math.max(...a),thr=Math.max(0.03,0.4*mx),sep=Math.round(0.45*TU.fps),c=[];
+  for(let i=1;i<N-1;i++)if(a[i]>=thr&&a[i]>=a[i-1]&&a[i]>=a[i+1])c.push(i);
+  c.sort((x,y)=>a[y]-a[x]);
+  const out=[];for(const i of c)if(out.every(j=>Math.abs(i-j)>=sep))out.push(i);
+  return out.sort((x,y)=>x-y);
+}
+const argminRange=(arr,lo,hi)=>{let b=lo;for(let i=lo;i<=hi;i++)if(arr[i]<arr[b])b=i;return b;};
+function tutCands(){
+  const N=TU.N,fps=TU.fps,mk=TU.log.move,guard=mk==='GUARD',legs=TU_LEGS.includes(mk),cands=[];
+  if(!TU.det){
+    // Sin deteccion: ventanas fijas cada medio segundo, para recorrerlas y ajustar a mano.
+    const D=Math.min(N-1,Math.round((guard?2:1.3)*fps)),st=Math.max(1,Math.round(.5*fps));
+    for(let a=0;a+D<N;a+=st)cands.push({a,b:a+D,seam:null,c:null});
+    if(!cands.length)cands.push({a:0,b:N-1,seam:null,c:null});
+    return {cands,best:Math.min(1,cands.length-1),reps:0};
+  }
+  const cost=(a,b,pref)=>{const s=tutSeam(a,b);return {s,c:s+0.15*(TU.act[a]+TU.act[b])+0.01*Math.abs((b-a)/fps-pref)};};
+  const peaks=guard?[]:tutPeaks();
+  if(peaks.length){
+    // Una propuesta por repeticion: el loop va de guardia a guardia y contiene un golpe entero. Una
+    // patada puede dar dos picos (recoger y extender): por eso se buscan todos los loops que tengan
+    // al menos un pico, y entre los mejores se elige uno por grupo de picos, sin repetir picos.
+    const pref=legs?1.5:1.3,dmin=Math.round(.7*fps),dmax=Math.round(2.2*fps),g=Math.max(2,Math.round(.12*fps));
+    const pre=new Array(N+1).fill(0);for(let i=0;i<N;i++)pre[i+1]=pre[i]+(peaks.includes(i)?1:0);
+    const all=[];
+    for(let a=0;a+dmin<N;a++){
+      let best=null;
+      for(let b=a+dmin;b<=Math.min(a+dmax,N-1);b++){
+        const np=pre[Math.max(a,b-g)]-pre[Math.min(b,a+g)];   // picos dentro, no pegados a la costura
+        if(np<1)continue;
+        const x=cost(a,b,pref);if(x.s===Infinity)continue;
+        const c=x.c+0.004*(np-1);
+        if(!best||c<best.c)best={a,b,seam:x.s,c};
+      }
+      if(best)all.push(best);
+    }
+    all.sort((x,y)=>x.c-y.c);
+    const used=new Set();
+    for(const x of all){
+      const ps=peaks.filter(p=>p>=x.a&&p<x.b);
+      if(ps.some(p=>used.has(p)))continue;
+      ps.forEach(p=>used.add(p));cands.push(x);
+      if(cands.length>=8)break;
+    }
+    cands.sort((x,y)=>x.a-y.a);
+  }
+  const reps=cands.length;
+  if(!cands.length){
+    // Guardia (o golpes sin repeticiones claras): las mejores costuras de todo el video.
+    const pref=guard?2:1.3,dmin=Math.round((guard?1.4:.8)*fps),dmax=Math.round((guard?2.6:2)*fps),all=[];
+    for(let a=0;a+dmin<N;a++){
+      let best=null;
+      for(let b=a+dmin;b<=Math.min(a+dmax,N-1);b++){const x=cost(a,b,pref);if(x.s===Infinity)continue;if(!best||x.c<best.c)best={a,b,seam:x.s,c:x.c};}
+      if(best)all.push(best);
+    }
+    all.sort((x,y)=>x.c-y.c);
+    for(const x of all){if(cands.length>=5)break;if(cands.every(y=>Math.abs(y.a-x.a)>=Math.round(.5*fps)))cands.push(x);}
+    cands.sort((x,y)=>x.a-y.a);
+  }
+  if(!cands.length)cands.push({a:0,b:Math.min(N-1,Math.round(1.3*fps)),seam:null,c:null});
+  let bi=0;cands.forEach((x,i)=>{if(x.c!=null&&(cands[bi].c==null||x.c<cands[bi].c))bi=i;});
+  return {cands,best:bi,reps};
+}
+function seamLabel(s){return s<0.008?'muy buena':s<0.016?'buena':s<0.03?'aceptable':'se nota el salto';}
+const tutK=()=>TU.fade?Math.min(TU_FADE,TU.a):0;
+function tutSelect(i){
+  TU.ci=Math.max(0,Math.min(TU.cands.length-1,i));
+  const c=TU.cands[TU.ci];TU.a=c.a;TU.b=c.b;
+  tutRefresh();
+}
+function tutRefresh(){
+  const n=TU.b-TU.a,fps=TU.fps,s=TU.det&&TU.b<TU.N?tutSeam(TU.a,TU.b):null,c=TU.cands[TU.ci];
+  const word=TU.reps?'Repetición ':'Opción ';
+  realGet('st-tut-rep').textContent=word+(TU.ci+1)+' de '+TU.cands.length+(TU.cands.length>1&&TU.ci===TU.best?' · la mejor':'');
+  const trimmed=c&&(c.a!==TU.a||c.b!==TU.b);
+  realGet('st-tut-info').textContent=fmtS(n/fps)+' · '+n+' cuadros a '+fps+' por segundo'+(s!=null&&s<Infinity?' · costura '+seamLabel(s):(TU.det?'':' · sin detección: ajusta a mano'))+(trimmed?' · ajustado':'');
+  realGet('st-tut-fade').textContent='Fundido: '+(TU.fade?'sí':'no');
+  realGet('st-tut-prev').disabled=TU.ci<=0;realGet('st-tut-next').disabled=TU.ci>=TU.cands.length-1;
+  realGet('st-tut-am').disabled=TU.a<=0;realGet('st-tut-bp').disabled=TU.b>=TU.N;
+  TU.t0=performance.now();TU.pi=0;
+  tutEnsure();
+}
+// Cuadros de la vista previa decodificados en memoria (solo los del loop y su fundido).
+async function tutEnsure(){
+  const tok=++TU.tok,lo=Math.max(0,TU.a-TU_FADE),hi=TU.b;
+  for(const [i,bm] of TU.bm)if(i<lo-20||i>=hi+20){if(bm.close)bm.close();TU.bm.delete(i);}
+  for(let i=lo;i<hi;i++){
+    if(tok!==TU.tok)return;
+    if(!TU.bm.has(i)&&TU.thumbs[i]){try{TU.bm.set(i,await createImageBitmap(TU.thumbs[i]));}catch(e){}}
+  }
+}
+function tutBitmap(i){
+  if(TU.bm.has(i))return TU.bm.get(i);
+  for(let d=1;d<6;d++){if(TU.bm.has(i-d))return TU.bm.get(i-d);if(TU.bm.has(i+d))return TU.bm.get(i+d);}
+  return null;
+}
+// Cuadro i del loop, igual que en la exportacion: los ultimos cuadros se funden con los que van
+// justo antes del inicio, asi el salto del final al principio no se nota.
+function tutDrawPreview(i){
+  const c=realGet('st-tut-cv'),x=c.getContext('2d'),n=TU.b-TU.a,k=tutK();
+  x.save();
+  const bm=tutBitmap(TU.a+i);
+  x.globalAlpha=1;if(bm)x.drawImage(bm,0,0,c.width,c.height);
+  if(k&&i>=n-k){const j=i-(n-k),o=TU.bm.get(TU.a-k+j);if(o){x.globalAlpha=(j+1)/(k+1);x.drawImage(o,0,0,c.width,c.height);}}
+  x.restore();
+}
+function tutPlay(){
+  cancelAnimationFrame(TU.raf);
+  const tick=now=>{
+    const n=TU.b-TU.a;
+    if(n>0){
+      if(!TU.paused)TU.pi=Math.floor((now-TU.t0)/1000*TU.fps)%n;
+      tutDrawPreview(Math.min(TU.pi,n-1));
+    }
+    TU.raf=requestAnimationFrame(tick);
+  };
+  TU.raf=requestAnimationFrame(tick);
+}
+async function tutPickCfg(){
+  const cands=['avc1.64001F','avc1.4D401F','avc1.42E01F'].map(codec=>({codec,width:TU_W,height:TU_H,bitrate:1400000,framerate:TU.fps,avc:{format:'avc'}}));
+  for(const cfg of cands){try{const r=await VideoEncoder.isConfigSupported(cfg);if(r.supported)return cfg;}catch(e){}}
+  return null;
+}
+async function tutExport(){
+  if(TU.busy)return;
+  const v=TU.v,fps=TU.fps,n=TU.b-TU.a,k=tutK(),done=realGet('st-tut-done');
+  TU.busy=true;TU.cancel=false;done.hidden=true;done.classList.remove('bad');
+  progress('Exportando el loop','Cancelar');
+  let err=null;
+  try{
+    if(!(window.VideoEncoder&&window.VideoFrame&&window.Mp4Muxer))throw new Error('este navegador no puede codificar video');
+    const cfg=await tutPickCfg();if(!cfg)throw new Error('este navegador no puede codificar H.264');
+    const target=new Mp4Muxer.ArrayBufferTarget();
+    const muxer=new Mp4Muxer.Muxer({target,video:{codec:'avc',width:TU_W,height:TU_H,frameRate:fps},fastStart:'in-memory'});
+    const enc=new VideoEncoder({output:(ch,meta)=>muxer.addVideoChunk(ch,meta),error:e=>{err=e;}});
+    enc.configure(cfg);
+    const out=document.createElement('canvas');out.width=TU_W;out.height=TU_H;
+    const ox=out.getContext('2d',{alpha:false});ox.imageSmoothingEnabled=true;ox.imageSmoothingQuality='high';
+    for(let i=0;i<n&&!TU.cancel&&!err;i++){
+      await seekV(v,(TU.a+i+0.5)/fps);
+      ox.globalAlpha=1;ox.fillStyle='#000';ox.fillRect(0,0,TU_W,TU_H);drawCover(ox,v,TU_W,TU_H);
+      if(k&&i>=n-k){const j=i-(n-k);await seekV(v,(TU.a-k+j+0.5)/fps);ox.globalAlpha=(j+1)/(k+1);drawCover(ox,v,TU_W,TU_H);ox.globalAlpha=1;}
+      const fr=new VideoFrame(out,{timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps)});
+      enc.encode(fr,{keyFrame:i===0});fr.close();
+      while(enc.encodeQueueSize>3&&!err)await pause(4);
+      realGet('st-prog-s').textContent=(i+1)+' de '+n+' cuadros';
+    }
+    if(err)throw err;
+    if(TU.cancel){try{enc.close();}catch(e){}}
+    else{
+      await enc.flush();enc.close();muxer.finalize();
+      TU.blob=new Blob([target.buffer],{type:'video/mp4'});TU.name=TU.file;
+      download(TU.blob,TU.name);
+      realGet('st-tut-share').disabled=false;
+      done.textContent='Listo: '+TU.name+' · '+TU_W+'×'+TU_H+' · '+fmtS(n/fps)+' · '+Math.round(TU.blob.size/1024)+' KB. Quedó en Descargas.';
+      done.hidden=false;
+    }
+  }catch(e){console.error('[estudio]',e);done.textContent='No se pudo exportar: '+(e&&e.message||e)+'.';done.classList.add('bad');done.hidden=false;}
+  realGet('st-progress').hidden=true;TU.busy=false;
+}
+realGet('st-tut-prev').addEventListener('click',()=>tutSelect(TU.ci-1));
+realGet('st-tut-next').addEventListener('click',()=>tutSelect(TU.ci+1));
+const tutMinLen=()=>Math.round(0.4*TU.fps);
+realGet('st-tut-am').addEventListener('click',()=>{TU.a=Math.max(0,TU.a-1);tutRefresh();});
+realGet('st-tut-ap').addEventListener('click',()=>{TU.a=Math.min(TU.b-tutMinLen(),TU.a+1);tutRefresh();});
+realGet('st-tut-bm').addEventListener('click',()=>{TU.b=Math.max(TU.a+tutMinLen(),TU.b-1);tutRefresh();});
+realGet('st-tut-bp').addEventListener('click',()=>{TU.b=Math.min(TU.N,TU.b+1);tutRefresh();});
+realGet('st-tut-fade').addEventListener('click',()=>{TU.fade=!TU.fade;tutRefresh();});
+realGet('st-tut-cv').addEventListener('click',()=>{
+  TU.paused=!TU.paused;
+  if(!TU.paused)TU.t0=performance.now()-TU.pi*1000/TU.fps;
+});
+realGet('st-tut-exp').addEventListener('click',tutExport);
+realGet('st-tut-share').addEventListener('click',()=>{if(TU.blob)shareBlob(TU.blob,TU.name);});
+realGet('st-tut-x').addEventListener('click',()=>location.reload());
+
+/* ========== PROMPTS ==========
+   Gemini: cuestionario del personaje (o al azar) sobre el prompt fijo de cambio de persona.
+   Genjutsu: el prompt fijo, con la linea opcional de golpes identicos. Las etiquetas van en
+   espanol; lo que entra al prompt, en ingles. */
+const PRM_OPTS={
+  age:[['20 a 24','early 20s'],['25 a 29','late 20s'],['30 a 34','early 30s'],['35 a 39','late 30s'],['40 a 44','early 40s'],['45 a 49','late 40s'],['50 a 54','early 50s'],['55 a 59','late 50s'],['60 o más','early 60s']],
+  gender:[['Mujer','woman'],['Hombre','man']],
+  skin:[['Clara','fair skin'],['Trigueña','light brown skin'],['Oliva','olive skin'],['Bronceada','tan skin'],['Morena','medium brown skin'],['Morena oscura','dark brown skin'],['Negra','deep dark skin']],
+  build:[['Atlética','athletic build'],['Delgada y fibrosa','lean build'],['Delgada en forma','slim and fit build'],['En forma, sin ser musculosa','fit but not muscular build'],['Musculosa','muscular build'],['Robusta','sturdy, solid build'],['Promedio','average build']],
+  hair:[['Corto castaño','short brown hair','*'],['Corto rizado','short curly hair','*'],['Rubio corto','short blonde hair','*'],['Corto negro con degradado','short black hair with a fade','m'],['Corto canoso','short salt-and-pepper hair','m'],['Rapado','buzz cut','m'],['Cabeza rapada','shaved head','m'],
+    ['Rizado oscuro en cola alta','dark curly hair in a high ponytail','f'],['Lacio castaño en cola de caballo','long straight brown hair in a ponytail','f'],['Rubio en trenza','blonde hair in a braid','f'],['Canoso a los hombros','shoulder-length silver hair','f'],['Negro en moño','black hair in a bun','f'],['Pelirrojo en moño','red hair in a bun','f']],
+  facial:[['Afeitado','clean-shaven'],['Barba de pocos días','light stubble'],['Barba recortada','trimmed beard'],['Barba completa','full beard'],['Bigote','mustache']],
+  acc:[['Ninguno','no accessories','*'],['Aretes pequeños','small stud earrings','*'],['Aretes de aro dorados','small gold hoop earrings','f'],['Banda en la frente','a black sweatband on the forehead','*'],['Reloj deportivo','a sports watch','*'],['Muñequeras negras','black wristbands','*']],
+  outfit:[['Camiseta azul marino y joggers negros','navy blue t-shirt and black joggers','*'],['Hoodie verde oliva y sudadera gris','olive green hoodie and gray sweatpants','*'],['Camiseta negra ajustada y shorts grises','fitted black t-shirt and gray training shorts','*'],['Esqueleto blanco y shorts negros','white tank top and black training shorts','*'],
+    ['Camiseta de compresión gris y joggers azul marino','charcoal compression shirt and navy joggers','m'],['Top negro manga larga y leggings gris oscuro','fitted black long-sleeve training top and dark gray high-waisted leggings','f'],['Chaqueta vinotinto y leggings negros','burgundy zip-up training jacket and black leggings','f'],['Top rojo sin mangas y leggings negros','red sleeveless training top and black leggings','f']],
+  frame:[['Anuncio: cabeza a media pantorrilla','ad'],['Tutorial: cuerpo entero','tut']]
+};
+const PRM_FIELDS=[['age','Edad'],['gender','Género'],['skin','Tono de piel'],['build','Contextura'],['hair','Pelo'],['facial','Vello facial'],['acc','Accesorios'],['outfit','Ropa'],['frame','Encuadre']];
+const PRM_FRAME={
+  ad:{text:'Framing: vertical 9:16, medium-long shot from just above the head down to mid-shin: both knees fully visible with some space below them, feet not needed. Leave only a small margin above the head and keep the whole body centered, with elbows inside the frame.',
+    fix:'show more of the legs, down to mid-shin',label:'Si Gemini corta las piernas, respóndele:'},
+  tut:{text:'Framing: vertical 9:16, full-body shot from just above the head down to the feet: both feet fully visible with a little floor below them. Leave only a small margin above the head and keep the whole body centered, with elbows inside the frame.',
+    fix:'show the whole body, including both feet',label:'Si Gemini corta los pies, respóndele:'}
+};
+const PUNCH_LINE=' Keep every punch identical: straight punches stay straight at face height.';
+const OTRO='__otro';
+let PRM={};try{PRM=JSON.parse(localStorage.getItem('kf_estudio_prm')||'{}')||{};}catch(e){PRM={};}
+function prmSave(){try{localStorage.setItem('kf_estudio_prm',JSON.stringify(PRM));}catch(e){}}
+function prmGenderTag(){const g=realGet('st-prm-gender').value;return g==='woman'?'f':(g==='man'?'m':'*');}
+function prmOptions(f){
+  const g=f==='hair'||f==='acc'||f==='outfit'?prmGenderTag():null;
+  return PRM_OPTS[f].filter(o=>!g||g==='*'||!o[2]||o[2]==='*'||o[2]===g);
+}
+function prmFillSelect(f){
+  const sel=realGet('st-prm-'+f),keep=sel.value||PRM[f];
+  const opts=prmOptions(f);
+  sel.innerHTML=opts.map(o=>'<option value="'+o[1].replace(/"/g,'&quot;')+'">'+o[0]+'</option>').join('')+(f==='frame'?'':'<option value="'+OTRO+'">Otro…</option>');
+  sel.value=keep&&(keep===OTRO||opts.some(o=>o[1]===keep))?keep:opts[0][1];
+}
+function prmVal(f){
+  const sel=realGet('st-prm-'+f);
+  return sel.value===OTRO?realGet('st-prm-'+f+'-o').value.trim():sel.value;
+}
+function prmText(){
+  const g=prmVal('gender'),facial=g==='woman'?'no facial hair':prmVal('facial');
+  const who=[prmVal('age'),g,prmVal('skin'),prmVal('build'),prmVal('hair'),facial,prmVal('acc')].filter(Boolean).join(', ');
+  const fr=PRM_FRAME[realGet('st-prm-frame').value]||PRM_FRAME.ad;
+  return 'Using image 1, keep the location exactly: same background, landmarks, lighting, time of day and camera angle. Replace the person with a completely different new person: '+who+
+    '. Outfit: '+(prmVal('outfit')||'athletic training clothes')+'. Pose: standing, facing the camera, in a boxing guard with both fists up near the chin, fists visible and empty, face fully visible. '+
+    fr.text+' Extend the background naturally as needed. Single person in the foreground, photorealistic, no text.';
+}
+const gjText=()=>PROMPT+(realGet('st-gj-punch').checked?PUNCH_LINE:'');
+function prmPaint(){
+  PRM_FIELDS.forEach(([f])=>{
+    const sel=realGet('st-prm-'+f),o=realGet('st-prm-'+f+'-o');
+    if(o)o.hidden=sel.value!==OTRO;
+    PRM[f]=sel.value;if(o)PRM[f+'_o']=o.value;
+  });
+  realGet('st-prm-facial-row').hidden=realGet('st-prm-gender').value==='woman';
+  PRM.punch=realGet('st-gj-punch').checked;prmSave();
+  const fr=PRM_FRAME[realGet('st-prm-frame').value]||PRM_FRAME.ad;
+  realGet('st-prm-text').textContent=prmText();
+  realGet('st-prm-fix-l').textContent=fr.label;realGet('st-prm-fix').textContent=fr.fix;
+  realGet('st-gj-text').textContent=gjText();
+}
+function prmSetup(){
+  realGet('st-prm-fields').innerHTML=PRM_FIELDS.map(([f,l])=>'<label class="st-field" id="st-prm-'+f+'-row">'+l+'<select id="st-prm-'+f+'"></select>'+
+    (f==='frame'?'':'<input type="text" id="st-prm-'+f+'-o" placeholder="Escríbelo (en inglés o español)" hidden>')+'</label>').join('');
+  PRM_FIELDS.forEach(([f])=>{const o=realGet('st-prm-'+f+'-o');if(o&&PRM[f+'_o'])o.value=PRM[f+'_o'];});
+  ['gender','age','skin','build','facial','frame'].forEach(prmFillSelect);
+  ['hair','acc','outfit'].forEach(prmFillSelect);
+  realGet('st-gj-punch').checked=!!PRM.punch;
+  realGet('st-prm-fields').addEventListener('change',e=>{if(e.target.id==='st-prm-gender')['hair','acc','outfit'].forEach(prmFillSelect);prmPaint();});
+  realGet('st-prm-fields').addEventListener('input',prmPaint);
+  prmPaint();
+}
+function prmRandom(){
+  const pick=a=>a[Math.floor(Math.random()*a.length)];
+  realGet('st-prm-gender').value=pick(PRM_OPTS.gender)[1];
+  ['hair','acc','outfit'].forEach(prmFillSelect);
+  ['age','skin','build','hair','facial','acc','outfit'].forEach(f=>{realGet('st-prm-'+f).value=pick(prmOptions(f))[1];});
+  prmPaint();
+}
+realGet('st-to-prm').addEventListener('click',()=>show('prm'));
+realGet('st-prm-rand').addEventListener('click',prmRandom);
+realGet('st-prm-copy').addEventListener('click',e=>copyText(prmText(),e.currentTarget));
+realGet('st-prm-fix-copy').addEventListener('click',e=>copyText(realGet('st-prm-fix').textContent,e.currentTarget));
+realGet('st-gj-punch').addEventListener('change',prmPaint);
+realGet('st-gj-copy').addEventListener('click',e=>copyText(gjText(),e.currentTarget));
+
 /* ========== ARRANQUE ========== */
-window.__estudio={snapHits,paintSnap,remuxFragmented,fixMp4,G,M,renderAt,buildEvents,resetReplay,setOffset,detectFormat,startMontar,finishTake,WC_CODECS,startRec,autoSync,runSync,exportar,hudImage};
+window.__estudio={snapHits,paintSnap,remuxFragmented,fixMp4,G,M,renderAt,buildEvents,resetReplay,setOffset,detectFormat,startMontar,finishTake,WC_CODECS,startRec,autoSync,runSync,exportar,hudImage,
+  TU,mp4Fps,tutSeam,tutCands,tutSelect,tutLabel,tutExport,prmText,prmRandom,gjText};
+prmSetup();
 setupRecForm();
 // La app cierra su splash a los 2,3 s; despues de eso el estudio ya no compite por la pantalla.
 setTimeout(()=>{
   const ob=realGet('screen-onboarding');if(ob)ob.classList.remove('active');
   realGet('bottom-nav').style.display='none';
-  realGet('st-to-rec').disabled=false;realGet('st-to-enc').disabled=false;realGet('st-to-mon').disabled=false;
+  ['st-to-rec','st-to-prm','st-to-enc','st-to-mon'].forEach(id=>{realGet(id).disabled=false;});
   realGet('st-boot').textContent='';
 },2450);
 })();
