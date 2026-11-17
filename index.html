@@ -5095,6 +5095,7 @@ root.innerHTML=`
   <div class="st-row"><span class="st-lbl">Inicio</span><button class="st-second" id="st-tut-am" aria-label="Inicio un cuadro antes">−1</button><button class="st-second" id="st-tut-ap" aria-label="Inicio un cuadro después">+1</button><span class="st-lbl" style="margin-left:auto">Fin</span><button class="st-second" id="st-tut-bm" aria-label="Fin un cuadro antes">−1</button><button class="st-second" id="st-tut-bp" aria-label="Fin un cuadro después">+1</button></div>
   <div class="st-row"><button class="st-second st-grow" id="st-tut-fade"></button></div>
   <button class="st-primary" id="st-tut-exp">Exportar loop</button>
+  <button class="st-second" id="st-tut-exp2"></button>
   <button class="st-second" id="st-tut-share" disabled>Compartir</button>
   <p class="st-fmt" id="st-tut-done" hidden></p>
   <p class="st-note" id="st-tut-note"></p>
@@ -5489,7 +5490,8 @@ function tutCount(){
   },1000);
 }
 function enterGrabarTutorial(cfg){
-  G.cfg=cfg;G.tut=true;G.maxMs=cfg.seconds*1000+300;
+  // Margen mayor que en rutina: con 4 s el video no puede quedar por debajo del minimo de Genjutsu.
+  G.cfg=cfg;G.tut=true;G.maxMs=cfg.seconds*1000+600;
   S.user.dom=cfg.dom;applyDom(cfg.dom);
   wrapCapture();
   // Cada acierto del tutorial queda en el registro, con la extremidad que golpeo.
@@ -5526,8 +5528,7 @@ function setupRecForm(){
   sel.value=String(Math.min(1,RUTINAS.length-1));
   realGet('st-diff').innerHTML=Object.keys(DIFF).map(k=>'<option value="'+k+'">'+DIFF[k].level+' ('+Math.round(DIFF[k].dur/60)+' min)</option>').join('');
   realGet('st-diff').value='medium';
-  realGet('st-len').innerHTML=[6,8,10].map(s=>'<option value="'+s+'">'+s+' s</option>').join('');
-  realGet('st-len').value='6';
+
   realGet('st-chips').innerHTML=Object.keys(MOVES).filter(k=>MOVES[k].kp>=0).map(k=>'<button data-mv="'+k+'" style="color:'+MOVES[k].color+'">'+MOVES[k].label+'</button>').join('');
   const paint=()=>{realGet('st-seq').textContent=customSeq.length?customSeq.map(k=>MOVES[k].label).join(' · '):'Toca los golpes en orden';refreshRecBtn();};
   realGet('st-chips').addEventListener('click',e=>{const m=e.target&&e.target.dataset&&e.target.dataset.mv;if(m){customSeq.push(m);paint();}});
@@ -5538,10 +5539,17 @@ function setupRecForm(){
   const tm=realGet('st-tmv');
   tm.innerHTML=[GUARD_MOVE].concat(TUTORIAL_MOVES).map(m=>['right','left'].map(d=>'<option value="'+m.mk+'|'+d+'">'+tutLabel(m.mk,d)+'</option>').join('')).join('');
   tm.addEventListener('change',paintKind);
-  realGet('st-kind').addEventListener('click',e=>{const k=e.target&&e.target.dataset&&e.target.dataset.k;if(k){REC_KIND=k;paintKind();}});
-  paintKind();
+  realGet('st-kind').addEventListener('click',e=>{const k=e.target&&e.target.dataset&&e.target.dataset.k;if(k&&k!==REC_KIND){REC_KIND=k;fillLen();paintKind();}});
+  fillLen();paintKind();
 }
 let REC_KIND='rut';
+// Largo de la toma: rutina 6, 8 o 10 s; tutorial 4, 6 u 8 s (4 s es el minimo de Genjutsu y alcanza
+// para 3 repeticiones).
+function fillLen(){
+  const tut=REC_KIND==='tut',opts=tut?[4,6,8]:[6,8,10];
+  realGet('st-len').innerHTML=opts.map(s=>'<option value="'+s+'">'+s+' s</option>').join('');
+  realGet('st-len').value=String(opts[0]);
+}
 const moveTitle=mk=>mk==='GUARD'?GUARD_MOVE.title:((TUTORIAL_MOVES.find(m=>m.mk===mk)||{}).title||mk);
 // Nombre de cada clip nuevo: uno por movimiento y por lado, sin compartir archivo.
 const CLIP_NAME={GUARD:'guardia',JAB:'jab',CROSS:'cross',HOOK_L:'gancho_adelantado',HOOK_R:'gancho_poder',HOOK_BODY_L:'gancho_cuerpo_adelantado',HOOK_BODY_R:'gancho_cuerpo_poder',
@@ -5566,11 +5574,11 @@ function paintKind(){
   realGet('st-g-rut').hidden=tut;realGet('st-g-tut').hidden=!tut;
   realGet('st-tclip').textContent='Archivo: '+clipFile(mk,dom);
   realGet('st-len-note').textContent=tut
-    ?'Graba cuando te ve de cuerpo entero, después de un 3-2-1 con pitidos. En 6 s caben 3 o 4 repeticiones; en Montar se elige la mejor y sale un loop de 1 a 2 s.'
+    ?'Graba cuando te ve de cuerpo entero, después de un 3-2-1 con pitidos. En 4 s caben 3 repeticiones; en Montar se elige la mejor (mejor la del medio) y sale un loop de 1 a 2 s.'
     :'La toma empieza en el 1 de la cuenta: 1 s con el óvalo y los puntos, 1 s de ¡YA! y luego la rutina. Con 6 s quedan unos 4 s de golpes. Genjutsu pide entre 4 y 30 s.';
   const steps=tut?['Aléjate hasta que se vea el cuerpo entero, de la cabeza a los pies, con fondo despejado y buena luz.',
     'Cuando te detecta suena 3-2-1 y arranca la grabación (REC arriba).',
-    guard?'Quédate en guardia ('+limbOf(mk,dom)+') con un rebote suave, sin golpear.':'Haz 3 o 4 repeticiones con '+(/^brazo/.test(limbOf(mk,dom))?'el ':'la ')+limbOf(mk,dom)+', a ritmo de enseñanza: desde la guardia, el golpe completo y de vuelta a la guardia, con una pausa corta.',
+    guard?'Quédate en guardia ('+limbOf(mk,dom)+') con un rebote suave, sin golpear.':'Haz 3 repeticiones con '+(/^brazo/.test(limbOf(mk,dom))?'el ':'la ')+limbOf(mk,dom)+', a ritmo de enseñanza: desde la guardia, el golpe completo y de vuelta a la guardia, con una pausa corta.',
     'El video sale limpio: la esfera y el contador solo los ves tú.']:STEPS_RUT;
   realGet('st-steps').innerHTML=steps.map(s=>'<li>'+s+'</li>').join('');
   refreshRecBtn();
@@ -6331,9 +6339,12 @@ function snapFps(f){
   return Math.max(10,Math.round(f));
 }
 // El video llena el cuadro 9:16 (recorte centrado si la proporcion no coincide).
-function drawCover(ctx,v,W,H){
+function drawCover(ctx,v,W,H,flip){
   const sw=v.videoWidth,sh=v.videoHeight,k=Math.max(W/sw,H/sh),dw=sw*k,dh=sh*k;
+  ctx.save();
+  if(flip){ctx.translate(W,0);ctx.scale(-1,1);}
   ctx.drawImage(v,(W-dw)/2,(H-dh)/2,dw,dh);
+  ctx.restore();
 }
 
 async function startTutorialEditor(file,log){
@@ -6347,7 +6358,9 @@ async function startTutorialEditor(file,log){
   TU.v=v;TU.vw=v.videoWidth;TU.vh=v.videoHeight;
   TU.N=Math.max(2,Math.floor(v.duration*TU.fps+1e-6));
   realGet('st-tut-h').textContent=moveTitle(log.move)+' · '+sideWord(log.dom);
-  realGet('st-tut-note').textContent='Sale como '+TU.file+': '+TU_W+'×'+TU_H+', sin audio y tal como lo grabaste, sin espejo. Toca la vista previa para pausar.';
+  const other=(log.dom||'right')==='left'?'right':'left';TU.file2=clipFile(log.move,other);
+  realGet('st-tut-exp2').textContent='Exportar versión '+sideWord(other)+' (espejo)';
+  realGet('st-tut-note').textContent='Sale como '+TU.file+': '+TU_W+'×'+TU_H+', sin audio y tal como lo grabaste. La versión '+sideWord(other)+' es el mismo loop espejado ('+TU.file2+'); evita ropa o fondos con letras, que salen al revés. Toca la vista previa para pausar.';
   show('tut');
   await tutDetect();
   tutAnalyze();
@@ -6547,8 +6560,9 @@ async function tutPickCfg(){
   for(const cfg of cands){try{const r=await VideoEncoder.isConfigSupported(cfg);if(r.supported)return cfg;}catch(e){}}
   return null;
 }
-async function tutExport(){
+async function tutExport(mirror){
   if(TU.busy)return;
+  const name=mirror?TU.file2:TU.file;
   const v=TU.v,fps=TU.fps,n=TU.b-TU.a,k=tutK(),done=realGet('st-tut-done');
   TU.busy=true;TU.cancel=false;done.hidden=true;done.classList.remove('bad');
   progress('Exportando el loop','Cancelar');
@@ -6564,8 +6578,8 @@ async function tutExport(){
     const ox=out.getContext('2d',{alpha:false});ox.imageSmoothingEnabled=true;ox.imageSmoothingQuality='high';
     for(let i=0;i<n&&!TU.cancel&&!err;i++){
       await seekV(v,(TU.a+i+0.5)/fps);
-      ox.globalAlpha=1;ox.fillStyle='#000';ox.fillRect(0,0,TU_W,TU_H);drawCover(ox,v,TU_W,TU_H);
-      if(k&&i>=n-k){const j=i-(n-k);await seekV(v,(TU.a-k+j+0.5)/fps);ox.globalAlpha=(j+1)/(k+1);drawCover(ox,v,TU_W,TU_H);ox.globalAlpha=1;}
+      ox.globalAlpha=1;ox.fillStyle='#000';ox.fillRect(0,0,TU_W,TU_H);drawCover(ox,v,TU_W,TU_H,mirror);
+      if(k&&i>=n-k){const j=i-(n-k);await seekV(v,(TU.a-k+j+0.5)/fps);ox.globalAlpha=(j+1)/(k+1);drawCover(ox,v,TU_W,TU_H,mirror);ox.globalAlpha=1;}
       const fr=new VideoFrame(out,{timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps)});
       enc.encode(fr,{keyFrame:i===0});fr.close();
       while(enc.encodeQueueSize>3&&!err)await pause(4);
@@ -6575,7 +6589,7 @@ async function tutExport(){
     if(TU.cancel){try{enc.close();}catch(e){}}
     else{
       await enc.flush();enc.close();muxer.finalize();
-      TU.blob=new Blob([target.buffer],{type:'video/mp4'});TU.name=TU.file;
+      TU.blob=new Blob([target.buffer],{type:'video/mp4'});TU.name=name;
       download(TU.blob,TU.name);
       realGet('st-tut-share').disabled=false;
       done.textContent='Listo: '+TU.name+' · '+TU_W+'×'+TU_H+' · '+fmtS(n/fps)+' · '+Math.round(TU.blob.size/1024)+' KB. Quedó en Descargas.';
@@ -6596,7 +6610,8 @@ realGet('st-tut-cv').addEventListener('click',()=>{
   TU.paused=!TU.paused;
   if(!TU.paused)TU.t0=performance.now()-TU.pi*1000/TU.fps;
 });
-realGet('st-tut-exp').addEventListener('click',tutExport);
+realGet('st-tut-exp').addEventListener('click',()=>tutExport(false));
+realGet('st-tut-exp2').addEventListener('click',()=>tutExport(true));
 realGet('st-tut-share').addEventListener('click',()=>{if(TU.blob)shareBlob(TU.blob,TU.name);});
 realGet('st-tut-x').addEventListener('click',()=>location.reload());
 
@@ -6648,7 +6663,7 @@ function prmText(){
   const who=[prmVal('age'),g,prmVal('skin'),prmVal('build'),prmVal('hair'),facial,prmVal('acc')].filter(Boolean).join(', ');
   const fr=PRM_FRAME[realGet('st-prm-frame').value]||PRM_FRAME.ad;
   return 'Using image 1, keep the location exactly: same background, landmarks, lighting, time of day and camera angle. Replace the person with a completely different new person: '+who+
-    '. Outfit: '+(prmVal('outfit')||'athletic training clothes')+'. Pose: standing, facing the camera, in a boxing guard with both fists up near the chin, fists visible and empty, face fully visible. '+
+    '. Outfit: '+(prmVal('outfit')||'athletic training clothes')+', plain, with no logos, text or numbers. Pose: standing, facing the camera, in a boxing guard with both fists up near the chin, fists visible and empty, face fully visible. '+
     fr.text+' Extend the background naturally as needed. Single person in the foreground, photorealistic, no text.';
 }
 const gjText=()=>PROMPT+(realGet('st-gj-punch').checked?PUNCH_LINE:'');
