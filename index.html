@@ -5382,7 +5382,7 @@ async function finishTake(){
     camera:{w:vw,h:vh},crop:G.crop,
     canvas:{w:c.width,h:c.height,dpr:window.devicePixelRatio||1},
     routine:{idx:cfg.idx,id:cfg.id,name:cfg.name,seq:cfg.seq,level:cfg.level},
-    diff:cfg.diff,dom:S.user.dom||'right',lang:document.documentElement.lang||null,
+    diff:cfg.diff,dom:S.user.dom||'right',lang:document.documentElement.lang||null,seconds:cfg.seconds,
     guide:G.guide,goT:G.goT,sessionStart:G.sessionStart,
     fps:r3(G.frames.length/(durMs/1000)),frames:G.frames,hits:G.hits};
   if(G.tut){log.move=cfg.mk;log.clip=cfg.key;}
@@ -5851,7 +5851,14 @@ function setOffset(ms){
   M.offset=Math.round(Math.max(M.offMin,Math.min(M.offMax,ms)));
   paintOffset();buildEvents();resetReplay();renderAt(vid().currentTime);
 }
-function cutEnd(){return Math.min(M.cutStart+CUT_S,vid().duration);}
+// Se exporta lo mismo que se grabo (6, 8 o 10 s desde el 1). Las tomas sin ese dato lo sacan de la
+// duracion grabada, que es el largo elegido mas 0,3 s de margen.
+function cutLen(){
+  const l=M.log;if(l&&l.seconds>0)return l.seconds;
+  const ms=l&&l.video&&l.video.ms;
+  return ms>1000?Math.max(1,Math.round((ms-300)/1000)):CUT_S;
+}
+function cutEnd(){return Math.min(M.cutStart+cutLen(),vid().duration);}
 function paintCut(){
   realGet('st-cut-v').textContent=fmtS(M.cutStart).replace(' s','')+'→'+fmtS(cutEnd());
   realGet('st-export').textContent='Exportar '+(Math.round((cutEnd()-M.cutStart)*10)/10).toString().replace('.',',')+' s';
